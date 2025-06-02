@@ -36,12 +36,10 @@
         <div class="club">
             <span class="toggle" onclick="toggleClub({{ club.id }})">▶</span>{{ club.name }}
             <div class="venue-list" id="venues-{{ club.id }}">
-                {% for venue in venues %}
-                    {% if venue.club_id == club.id %}
+                {% for venue in venues if venue.club_id == club.id %}
                     <div class="venue-item">
                         <span class="delete-btn" onclick="confirmDelete({{ venue.id }}, {{ club.id }})">✖</span>{{ venue.name }}
                     </div>
-                    {% endif %}
                 {% endfor %}
                 <div class="add-venue-box">
                     <input type="text" id="venue-name-{{ club.id }}" placeholder="New Venue Name">
@@ -83,8 +81,8 @@ function confirmDelete(venueId, clubId) {
     if (confirm('Are you sure you want to delete this venue?')) {
         fetch('/admin/delete_venue', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-            body: new URLSearchParams({ venue_id: venueId })
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ venue_id: venueId })
         }).then(() => reopenClub(clubId));
     }
 }
