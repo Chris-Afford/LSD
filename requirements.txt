@@ -4,4 +4,5 @@ sqlmodel
 jinja2
 python-multipart
 aiofiles
-passlib[bcrypt] 
+passlib[bcrypt]
+
