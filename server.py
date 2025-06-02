@@ -99,6 +99,18 @@ def add_venue(
         session.commit()
     return RedirectResponse(url="/admin", status_code=303)
 
+@app.post("/admin/delete_venue")
+async def delete_venue(request: Request):
+    data = await request.json()
+    venue_id = data.get("venue_id")
+
+    with Session(engine) as session:
+        venue = session.get(Venue, venue_id)
+        if venue:
+            session.delete(venue)
+            session.commit()
+    return {"status": "ok"}
+
 @app.get("/admin/results/{venue_id}", response_class=HTMLResponse)
 def admin_results(request: Request, venue_id: int, username: str = Depends(verify_admin)):
     with open("results_store.json", "r") as f:
