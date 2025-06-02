@@ -1,25 +1,24 @@
 from fastapi import FastAPI, Request, Form, Depends, HTTPException
-from fastapi.responses import HTMLResponse, RedirectResponse, FileResponse
+from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
 from fastapi.security import HTTPBasic, HTTPBasicCredentials
 from sqlmodel import SQLModel, create_engine, Session, select, Field
-from typing import Optional, List
+from typing import Optional
 from passlib.hash import bcrypt
 from pydantic import BaseModel
 import secrets
 import json
 import uvicorn
-import os
 from datetime import date
 
 # Setup
 app = FastAPI()
 templates = Jinja2Templates(directory="templates")
-database_url = "sqlite:////data/database.db"
+database_url = "sqlite:////data/database.db"  # Use Render's persistent volume
 engine = create_engine(database_url, echo=True)
 security = HTTPBasic()
 
-# Database models
+# Database Models
 class Club(SQLModel, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
     name: str
@@ -46,29 +45,33 @@ class Result(BaseModel):
     correct_weight: str
     raw_message: str
 
-# Init database
+# Database Initialization
 @app.on_event("startup")
 def on_startup():
     SQLModel.metadata.create_all(engine)
 
-# Basic admin auth
+# Admin Login
 ADMIN_USERNAME = "Felix"
 ADMIN_PASSWORD = bcrypt.hash("1973")
 
 def verify_admin(credentials: HTTPBasicCredentials = Depends(security)):
-    correct_username = secrets.compare_digest(credentials.username, ADMIN_USERNAME)
-    correct_password = bcrypt.verify(credentials.password, ADMIN_PASSWORD)
-    if not (correct_username and correct_password):
-        raise HTTPException(status_code=401, detail="Incorrect credentials")
+    if not secrets.compare_digest(credentials.username, ADMIN_USERNAME):
+        raise HTTPException(status_code=401, detail="Invalid username")
+    if not bcrypt.verify(credentials.password, ADMIN_PASSWORD):
+        raise HTTPException(status_code=401, detail="Invalid password")
     return credentials.username
 
-# Admin dashboard
+# Admin Dashboard
 @app.get("/admin", response_class=HTMLResponse)
 def admin_dashboard(request: Request, username: str = Depends(verify_admin)):
     with Session(engine) as session:
         clubs = session.exec(select(Club)).all()
         venues = session.exec(select(Venue)).all()
-    return templates.TemplateResponse("admin_dashboard.html", {"request": request, "clubs": clubs, "venues": venues})
+    return templates.TemplateResponse("admin_dashboard.html", {
+        "request": request,
+        "clubs": clubs,
+        "venues": venues
+    })
 
 @app.post("/admin/add_club", response_class=RedirectResponse)
 def add_club(
@@ -77,8 +80,8 @@ def add_club(
     password: str = Form(...),
     user: str = Depends(verify_admin)
 ):
+    hashed_pw = bcrypt.hash(password)
     with Session(engine) as session:
-        hashed_pw = bcrypt.hash(password)
         club = Club(name=name, username=username, password_hash=hashed_pw)
         session.add(club)
         session.commit()
@@ -103,7 +106,7 @@ def admin_results(request: Request, venue_id: int, username: str = Depends(verif
     result = all_data.get(str(venue_id))
     return templates.TemplateResponse("admin_results.html", {"request": request, "result": result})
 
-# Utility to record passes
+# Day Pass Recording and View
 def record_day_pass(venue_id: int):
     today = date.today().isoformat()
     with Session(engine) as session:
@@ -114,7 +117,6 @@ def record_day_pass(venue_id: int):
             session.add(DayPass(venue_id=venue_id, date=today))
             session.commit()
 
-# View passes
 @app.get("/admin/daypasses/{club_id}", response_class=HTMLResponse)
 def view_daypasses(request: Request, club_id: int, username: str = Depends(verify_admin)):
     with Session(engine) as session:
@@ -125,6 +127,6 @@ def view_daypasses(request: Request, club_id: int, username: str = Depends(verif
             all_passes.append((v.name, passes))
     return templates.TemplateResponse("daypasses.html", {"request": request, "passes": all_passes})
 
-# For dev testing
+# Dev run
 if __name__ == "__main__":
     uvicorn.run("server:app", host="0.0.0.0", port=8000, reload=True)
