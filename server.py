@@ -10,6 +10,7 @@ import secrets
 import json
 import uvicorn
 from datetime import date
+import os
 
 # Setup
 app = FastAPI()
@@ -56,20 +57,27 @@ def login(credentials: dict):
             raise HTTPException(status_code=401, detail="Invalid login")
 
         venues = session.exec(select(Venue).where(Venue.club_id == club.id)).all()
-        return {"club_id": club.id, "venues": [{"id": v.id, "name": v.name} for v in venues]}
+        return {"club_id": club.id, "venues": [v.name for v in venues]}
 
 @app.post("/submit/{club_id}")
 def submit_result(club_id: int, result: Result):
     result_data = result.dict()
-    with open("results_store.json", "r") as f:
+    filename = f"results_club_{club_id}.json"
+
+    if not os.path.exists(filename):
+        with open(filename, "w") as f:
+            json.dump({}, f)
+
+    with open(filename, "r") as f:
         existing_data = json.load(f)
 
-    existing_data[str(club_id)] = result_data
+    existing_data[result_data["venue_name"]] = result_data
 
-    with open("results_store.json", "w") as f:
+    with open(filename, "w") as f:
         json.dump(existing_data, f, indent=2)
 
     return {"status": "ok"}
+
 # Admin Login
 ADMIN_USERNAME = "Felix"
 ADMIN_PASSWORD = bcrypt.hash("1973")
@@ -131,14 +139,23 @@ async def delete_venue(request: Request):
             session.commit()
     return {"status": "ok"}
 
-@app.get("/admin/results/{venue_id}", response_class=HTMLResponse)
-def admin_results(request: Request, venue_id: int, username: str = Depends(verify_admin)):
-    with open("results_store.json", "r") as f:
+@app.get("/admin/results/{club_id}", response_class=HTMLResponse)
+def admin_results(request: Request, club_id: int, username: str = Depends(verify_admin)):
+    filename = f"results_club_{club_id}.json"
+    if not os.path.exists(filename):
+        return templates.TemplateResponse("admin_results.html", {"request": request, "result": None})
+
+    with open(filename, "r") as f:
         all_data = json.load(f)
-    result = all_data.get(str(venue_id))
-    return templates.TemplateResponse("admin_results.html", {"request": request, "result": result})
+
+    return templates.TemplateResponse("admin_results.html", {"request": request, "result": all_data})
 
 # Day Pass Recording and View
+class DayPass(SQLModel, table=True):
+    id: Optional[int] = Field(default=None, primary_key=True)
+    venue_id: int
+    date: str
+
 def record_day_pass(venue_id: int):
     today = date.today().isoformat()
     with Session(engine) as session:
