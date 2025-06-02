@@ -1,50 +1,50 @@
+<!-- templates/admin_dashboard.html -->
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
-  <meta charset="UTF-8">
-  <title>Admin Dashboard</title>
-  <style>
-    body {
-      font-family: sans-serif;
-      background-color: #111;
-      color: white;
-      padding: 20px;
-    }
-    h1 {
-      color: #00ffcc;
-    }
-    table {
-      width: 100%;
-      margin-top: 20px;
-      border-collapse: collapse;
-    }
-    th, td {
-      padding: 8px 12px;
-      border-bottom: 1px solid #444;
-    }
-    tr:hover {
-      background-color: #222;
-    }
-  </style>
+    <title>Admin Dashboard</title>
+    <style>
+        body { font-family: Arial; padding: 20px; background: #f5f5f5; }
+        h2 { margin-top: 40px; }
+        form { margin-bottom: 30px; padding: 10px; background: #fff; border-radius: 5px; }
+        input, select, button { margin: 5px; padding: 6px; }
+        .item-list { background: #fff; padding: 10px; border-radius: 5px; margin-bottom: 20px; }
+    </style>
 </head>
 <body>
-  <h1>Admin Dashboard</h1>
-  <p>Here are your venues:</p>
-  <table>
-    <thead>
-      <tr>
-        <th>ID</th>
-        <th>Name</th>
-      </tr>
-    </thead>
-    <tbody>
-      {% for venue in venues %}
-      <tr>
-        <td>{{ venue.id }}</td>
-        <td>{{ venue.name }}</td>
-      </tr>
-      {% endfor %}
-    </tbody>
-  </table>
+    <h1>Welcome, Admin</h1>
+
+    <h2>Add New Club</h2>
+    <form action="/admin/add_club" method="post">
+        <input type="text" name="name" placeholder="Club Name" required>
+        <input type="text" name="username" placeholder="Username" required>
+        <input type="password" name="password" placeholder="Password" required>
+        <button type="submit">Add Club</button>
+    </form>
+
+    <h2>Add New Venue</h2>
+    <form action="/admin/add_venue" method="post">
+        <select name="club_id">
+            {% for club in clubs %}
+                <option value="{{ club.id }}">{{ club.name }}</option>
+            {% endfor %}
+        </select>
+        <input type="text" name="venue_name" placeholder="Venue Name" required>
+        <button type="submit">Add Venue</button>
+    </form>
+
+    <h2>Clubs</h2>
+    <div class="item-list">
+        {% for club in clubs %}
+            <strong>{{ club.name }}</strong> ({{ club.username }})<br>
+        {% endfor %}
+    </div>
+
+    <h2>Venues</h2>
+    <div class="item-list">
+        {% for venue in venues %}
+            <strong>{{ venue.name }}</strong> (Club ID: {{ venue.club_id }})<br>
+        {% endfor %}
+    </div>
 </body>
 </html>
