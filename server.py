@@ -1,57 +1,24 @@
-from fastapi import FastAPI, WebSocket, WebSocketDisconnect, HTTPException
-from fastapi.middleware.cors import CORSMiddleware
+from fastapi import FastAPI, Request, Form, Depends
+from fastapi.responses import HTMLResponse, RedirectResponse
+from fastapi.templating import Jinja2Templates
+from sqlmodel import SQLModel, create_engine, Session, select
+from typing import Optional
+import uvicorn
+
+# Models
 from pydantic import BaseModel
-from datetime import datetime, timedelta
-from typing import Dict
-from sqlalchemy import create_engine, Column, Integer, String, DateTime, Boolean
-from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy.orm import sessionmaker
-import hashlib
 
-app = FastAPI()
+class Venue(SQLModel, table=True):
+    id: Optional[int] = Field(default=None, primary_key=True)
+    name: str
 
-# Allow local development
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["*"],
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
-
-# --- DATABASE SETUP ---
-DATABASE_URL = "sqlite:///./scoreboard.db"
-engine = create_engine(DATABASE_URL, connect_args={"check_same_thread": False})
-SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
-Base = declarative_base()
-
-class Venue(Base):
-    __tablename__ = "venues"
-    id = Column(Integer, primary_key=True, index=True)
-    name = Column(String, unique=True)
-    username = Column(String, unique=True)
-    password_hash = Column(String)
-    last_login = Column(DateTime, default=datetime.utcnow)
-
-class ResultData(Base):
-    __tablename__ = "results"
-    id = Column(Integer, primary_key=True, index=True)
-    venue_id = Column(Integer)
-    timestamp = Column(DateTime, default=datetime.utcnow)
-    message1 = Column(String)
-    message2 = Column(String)
-    track_condition = Column(String)
-    correct_weight = Column(String)
-    raw_message = Column(String)
-
-Base.metadata.create_all(bind=engine)
-
-# --- MODELS ---
-class LoginRequest(BaseModel):
+class User(SQLModel, table=True):
+    id: Optional[int] = Field(default=None, primary_key=True)
     username: str
     password: str
+    venue_id: int
 
-class ResultSubmission(BaseModel):
+class Result(BaseModel):
     timestamp: str
     venue_id: int
     status: str
@@ -61,67 +28,47 @@ class ResultSubmission(BaseModel):
     correct_weight: str
     raw_message: str
 
-# --- HELPERS ---
-def hash_password(password: str) -> str:
-    return hashlib.sha256(password.encode()).hexdigest()
+# App and DB setup
+app = FastAPI()
+templates = Jinja2Templates(directory="templates")
+database_url = "sqlite:///./database.db"
+engine = create_engine(database_url, echo=True)
 
-# --- API ROUTES ---
-@app.post("/login")
-def login(data: LoginRequest):
-    db = SessionLocal()
-    user = db.query(Venue).filter_by(username=data.username).first()
-    if user and user.password_hash == hash_password(data.password):
-        user.last_login = datetime.utcnow()
-        db.commit()
-        return {"venue_id": user.id, "venue_name": user.name}
-    raise HTTPException(status_code=401, detail="Invalid credentials")
+@app.on_event("startup")
+def on_startup():
+    SQLModel.metadata.create_all(engine)
 
-@app.post("/submit/{venue_id}")
-def submit_results(venue_id: int, data: ResultSubmission):
-    db = SessionLocal()
-    venue = db.query(Venue).filter_by(id=venue_id).first()
-    if not venue:
-        raise HTTPException(status_code=404, detail="Venue not found")
+# Admin panel
+@app.get("/admin", response_class=HTMLResponse)
+def admin_dashboard(request: Request):
+    with Session(engine) as session:
+        venues = session.exec(select(Venue)).all()
+    return templates.TemplateResponse("admin_dashboard.html", {"request": request, "venues": venues})
 
-    new_result = ResultData(
-        venue_id=venue_id,
-        timestamp=datetime.utcnow(),
-        message1=data.message1,
-        message2=data.message2,
-        track_condition=data.track_condition,
-        correct_weight=data.correct_weight,
-        raw_message=data.raw_message
-    )
-    db.add(new_result)
-    db.commit()
-    return {"status": "ok"}
+@app.post("/admin/add", response_class=RedirectResponse)
+def add_venue_and_user(
+    name: str = Form(...),
+    username: str = Form(...),
+    password: str = Form(...)
+):
+    with Session(engine) as session:
+        venue = Venue(name=name)
+        session.add(venue)
+        session.commit()
+        session.refresh(venue)
 
-@app.get("/scoreboard/{venue_id}")
-def get_latest_result(venue_id: int):
-    db = SessionLocal()
-    result = db.query(ResultData).filter_by(venue_id=venue_id).order_by(ResultData.timestamp.desc()).first()
-    if not result:
-        raise HTTPException(status_code=404, detail="No result found")
-    return {
-        "timestamp": result.timestamp.isoformat(),
-        "message1": result.message1,
-        "message2": result.message2,
-        "track_condition": result.track_condition,
-        "correct_weight": result.correct_weight,
-        "raw_message": result.raw_message,
-    }
+        user = User(username=username, password=password, venue_id=venue.id)
+        session.add(user)
+        session.commit()
+    return RedirectResponse(url="/admin", status_code=303)
 
-# For adding test users manually (delete in production)
-@app.post("/create_venue")
-def create_venue(name: str, username: str, password: str):
-    db = SessionLocal()
-    if db.query(Venue).filter_by(username=username).first():
-        raise HTTPException(status_code=400, detail="Username already exists")
-    new_venue = Venue(
-        name=name,
-        username=username,
-        password_hash=hash_password(password)
-    )
-    db.add(new_venue)
-    db.commit()
-    return {"status": "created", "venue_id": new_venue.id}
+@app.get("/admin/results/{venue_id}", response_class=HTMLResponse)
+def admin_results(request: Request, venue_id: int):
+    with open("results_store.json", "r") as f:
+        all_data = json.load(f)
+    result = all_data.get(str(venue_id))
+    return templates.TemplateResponse("admin_results.html", {"request": request, "result": result})
+
+# For dev testing
+if __name__ == "__main__":
+    uvicorn.run("admin_panel_backend:app", host="0.0.0.0", port=8000, reload=True)
