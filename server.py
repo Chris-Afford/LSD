@@ -14,11 +14,11 @@ from datetime import date
 # Setup
 app = FastAPI()
 templates = Jinja2Templates(directory="templates")
-database_url = "sqlite:////data/database.db"  # Use Render's persistent volume
+database_url = "sqlite:////data/database.db"
 engine = create_engine(database_url, echo=True)
 security = HTTPBasic()
 
-# Database Models
+# Models
 class Club(SQLModel, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
     name: str
@@ -30,14 +30,10 @@ class Venue(SQLModel, table=True):
     name: str
     club_id: int
 
-class DayPass(SQLModel, table=True):
-    id: Optional[int] = Field(default=None, primary_key=True)
-    venue_id: int
-    date: str
-
 class Result(BaseModel):
     timestamp: str
-    venue_id: int
+    club_id: int
+    venue_name: str
     status: str
     message1: str
     message2: str
@@ -45,47 +41,35 @@ class Result(BaseModel):
     correct_weight: str
     raw_message: str
 
-# Database Initialization
 @app.on_event("startup")
 def on_startup():
     SQLModel.metadata.create_all(engine)
 
-
-#App Login
-class LoginRequest(BaseModel):
-    username: str
-    password: str
-
 @app.post("/login")
-def login(request: LoginRequest):
+def login(credentials: dict):
+    username = credentials.get("username")
+    password = credentials.get("password")
+
     with Session(engine) as session:
-        club = session.exec(select(Club).where(Club.username == request.username)).first()
-        if not club or not bcrypt.verify(request.password, club.password_hash):
-            raise HTTPException(status_code=401, detail="Invalid credentials")
+        club = session.exec(select(Club).where(Club.username == username)).first()
+        if not club or not bcrypt.verify(password, club.password_hash):
+            raise HTTPException(status_code=401, detail="Invalid login")
 
         venues = session.exec(select(Venue).where(Venue.club_id == club.id)).all()
-        return {
-            "club_id": club.id,
-            "club_name": club.name,
-            "venues": [{"id": v.id, "name": v.name} for v in venues]
-        }
+        return {"club_id": club.id, "venues": [{"id": v.id, "name": v.name} for v in venues]}
 
-#App Receive
-@app.post("/submit/{venue_id}")
-def receive_results(venue_id: int, result: Result):
-    try:
-        with open("results_store.json", "r") as f:
-            data = json.load(f)
-    except FileNotFoundError:
-        data = {}
+@app.post("/submit/{club_id}")
+def submit_result(club_id: int, result: Result):
+    result_data = result.dict()
+    with open("results_store.json", "r") as f:
+        existing_data = json.load(f)
 
-    data[str(venue_id)] = result.dict()
+    existing_data[str(club_id)] = result_data
 
     with open("results_store.json", "w") as f:
-        json.dump(data, f, indent=2)
+        json.dump(existing_data, f, indent=2)
 
-    return {"status": "success"}
-
+    return {"status": "ok"}
 # Admin Login
 ADMIN_USERNAME = "Felix"
 ADMIN_PASSWORD = bcrypt.hash("1973")
