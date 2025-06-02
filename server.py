@@ -1,24 +1,35 @@
-from fastapi import FastAPI, Request, Form
-from fastapi.responses import HTMLResponse, RedirectResponse
+from fastapi import FastAPI, Request, Form, Depends, HTTPException
+from fastapi.responses import HTMLResponse, RedirectResponse, FileResponse
 from fastapi.templating import Jinja2Templates
+from fastapi.security import HTTPBasic, HTTPBasicCredentials
 from sqlmodel import SQLModel, create_engine, Session, select, Field
-from typing import Optional
-from datetime import date
-import uvicorn
-import json
-
-# Models
+from typing import Optional, List
+from passlib.hash import bcrypt
 from pydantic import BaseModel
+import secrets
+import json
+import uvicorn
+import os
+from datetime import date
+
+# Setup
+app = FastAPI()
+templates = Jinja2Templates(directory="templates")
+database_url = "sqlite:///./data/database.db"
+engine = create_engine(database_url, echo=True)
+security = HTTPBasic()
+
+# Database models
+class Club(SQLModel, table=True):
+    id: Optional[int] = Field(default=None, primary_key=True)
+    name: str
+    username: str
+    password_hash: str
 
 class Venue(SQLModel, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
     name: str
-
-class User(SQLModel, table=True):
-    id: Optional[int] = Field(default=None, primary_key=True)
-    username: str
-    password: str
-    venue_id: int
+    club_id: int
 
 class DayPass(SQLModel, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
@@ -35,39 +46,64 @@ class Result(BaseModel):
     correct_weight: str
     raw_message: str
 
-# App and DB setup
-app = FastAPI()
-templates = Jinja2Templates(directory="templates")
-engine = create_engine("sqlite:////data/database.db", echo=True)
+# Init database
+@app.on_event("startup")
+def on_startup():
+    SQLModel.metadata.create_all(engine)
 
-# Admin panel
+# Basic admin auth
+ADMIN_USERNAME = "Felix"
+ADMIN_PASSWORD = bcrypt.hash("1973")
+
+def verify_admin(credentials: HTTPBasicCredentials = Depends(security)):
+    correct_username = secrets.compare_digest(credentials.username, ADMIN_USERNAME)
+    correct_password = bcrypt.verify(credentials.password, ADMIN_PASSWORD)
+    if not (correct_username and correct_password):
+        raise HTTPException(status_code=401, detail="Incorrect credentials")
+    return credentials.username
+
+# Admin dashboard
 @app.get("/admin", response_class=HTMLResponse)
-def admin_dashboard(request: Request):
+def admin_dashboard(request: Request, username: str = Depends(verify_admin)):
     with Session(engine) as session:
+        clubs = session.exec(select(Club)).all()
         venues = session.exec(select(Venue)).all()
-    return templates.TemplateResponse("admin_dashboard.html", {"request": request, "venues": venues})
+    return templates.TemplateResponse("admin_dashboard.html", {"request": request, "clubs": clubs, "venues": venues})
 
-@app.post("/admin/add", response_class=RedirectResponse)
-def add_venue_and_user(
+@app.post("/admin/add_club", response_class=RedirectResponse)
+def add_club(
     name: str = Form(...),
     username: str = Form(...),
-    password: str = Form(...)
+    password: str = Form(...),
+    user: str = Depends(verify_admin)
 ):
     with Session(engine) as session:
-        venue = Venue(name=name)
-        session.add(venue)
-        session.commit()
-        session.refresh(venue)
-
-        user = User(username=username, password=password, venue_id=venue.id)
-        session.add(user)
+        hashed_pw = bcrypt.hash(password)
+        club = Club(name=name, username=username, password_hash=hashed_pw)
+        session.add(club)
         session.commit()
     return RedirectResponse(url="/admin", status_code=303)
 
-# Day pass tracking
-def init_db():
-    SQLModel.metadata.create_all(engine)
+@app.post("/admin/add_venue", response_class=RedirectResponse)
+def add_venue(
+    club_id: int = Form(...),
+    venue_name: str = Form(...),
+    user: str = Depends(verify_admin)
+):
+    with Session(engine) as session:
+        venue = Venue(name=venue_name, club_id=club_id)
+        session.add(venue)
+        session.commit()
+    return RedirectResponse(url="/admin", status_code=303)
 
+@app.get("/admin/results/{venue_id}", response_class=HTMLResponse)
+def admin_results(request: Request, venue_id: int, username: str = Depends(verify_admin)):
+    with open("results_store.json", "r") as f:
+        all_data = json.load(f)
+    result = all_data.get(str(venue_id))
+    return templates.TemplateResponse("admin_results.html", {"request": request, "result": result})
+
+# Utility to record passes
 def record_day_pass(venue_id: int):
     today = date.today().isoformat()
     with Session(engine) as session:
@@ -78,21 +114,17 @@ def record_day_pass(venue_id: int):
             session.add(DayPass(venue_id=venue_id, date=today))
             session.commit()
 
-def get_day_passes(venue_id: int):
+# View passes
+@app.get("/admin/daypasses/{club_id}", response_class=HTMLResponse)
+def view_daypasses(request: Request, club_id: int, username: str = Depends(verify_admin)):
     with Session(engine) as session:
-        return session.exec(
-            select(DayPass).where(DayPass.venue_id == venue_id)
-        ).all()
-
-init_db()
-
-@app.get("/admin/results/{venue_id}", response_class=HTMLResponse)
-def admin_results(request: Request, venue_id: int):
-    with open("results_store.json", "r") as f:
-        all_data = json.load(f)
-    result = all_data.get(str(venue_id))
-    return templates.TemplateResponse("admin_results.html", {"request": request, "result": result})
+        venues = session.exec(select(Venue).where(Venue.club_id == club_id)).all()
+        all_passes = []
+        for v in venues:
+            passes = session.exec(select(DayPass).where(DayPass.venue_id == v.id)).all()
+            all_passes.append((v.name, passes))
+    return templates.TemplateResponse("daypasses.html", {"request": request, "passes": all_passes})
 
 # For dev testing
 if __name__ == "__main__":
-    uvicorn.run("admin_panel_backend:app", host="0.0.0.0", port=8000, reload=True)
+    uvicorn.run("server:app", host="0.0.0.0", port=8000, reload=True)
