@@ -15,7 +15,7 @@ from datetime import date
 # Setup
 app = FastAPI()
 templates = Jinja2Templates(directory="templates")
-database_url = "sqlite:///./data/database.db"
+database_url = "sqlite:////data/database.db"
 engine = create_engine(database_url, echo=True)
 security = HTTPBasic()
 
