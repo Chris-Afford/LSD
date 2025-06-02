@@ -50,6 +50,26 @@ class Result(BaseModel):
 def on_startup():
     SQLModel.metadata.create_all(engine)
 
+
+#App Login
+class LoginRequest(BaseModel):
+    username: str
+    password: str
+
+@app.post("/login")
+def login(request: LoginRequest):
+    with Session(engine) as session:
+        club = session.exec(select(Club).where(Club.username == request.username)).first()
+        if not club or not bcrypt.verify(request.password, club.password_hash):
+            raise HTTPException(status_code=401, detail="Invalid credentials")
+
+        venues = session.exec(select(Venue).where(Venue.club_id == club.id)).all()
+        return {
+            "club_id": club.id,
+            "club_name": club.name,
+            "venues": [{"id": v.id, "name": v.name} for v in venues]
+        }
+
 # Admin Login
 ADMIN_USERNAME = "Felix"
 ADMIN_PASSWORD = bcrypt.hash("1973")
