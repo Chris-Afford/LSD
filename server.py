@@ -70,6 +70,22 @@ def login(request: LoginRequest):
             "venues": [{"id": v.id, "name": v.name} for v in venues]
         }
 
+#App Receive
+@app.post("/submit/{venue_id}")
+def receive_results(venue_id: int, result: Result):
+    try:
+        with open("results_store.json", "r") as f:
+            data = json.load(f)
+    except FileNotFoundError:
+        data = {}
+
+    data[str(venue_id)] = result.dict()
+
+    with open("results_store.json", "w") as f:
+        json.dump(data, f, indent=2)
+
+    return {"status": "success"}
+
 # Admin Login
 ADMIN_USERNAME = "Felix"
 ADMIN_PASSWORD = bcrypt.hash("1973")
