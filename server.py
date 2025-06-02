@@ -1,9 +1,11 @@
-from fastapi import FastAPI, Request, Form, Depends
+from fastapi import FastAPI, Request, Form
 from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
 from sqlmodel import SQLModel, create_engine, Session, select, Field
 from typing import Optional
+from datetime import date
 import uvicorn
+import json
 
 # Models
 from pydantic import BaseModel
@@ -18,6 +20,11 @@ class User(SQLModel, table=True):
     password: str
     venue_id: int
 
+class DayPass(SQLModel, table=True):
+    id: Optional[int] = Field(default=None, primary_key=True)
+    venue_id: int
+    date: str
+
 class Result(BaseModel):
     timestamp: str
     venue_id: int
@@ -31,12 +38,7 @@ class Result(BaseModel):
 # App and DB setup
 app = FastAPI()
 templates = Jinja2Templates(directory="templates")
-database_url = "sqlite:///./database.db"
-engine = create_engine(database_url, echo=True)
-
-@app.on_event("startup")
-def on_startup():
-    SQLModel.metadata.create_all(engine)
+engine = create_engine("sqlite:////data/database.db", echo=True)
 
 # Admin panel
 @app.get("/admin", response_class=HTMLResponse)
@@ -61,6 +63,28 @@ def add_venue_and_user(
         session.add(user)
         session.commit()
     return RedirectResponse(url="/admin", status_code=303)
+
+# Day pass tracking
+def init_db():
+    SQLModel.metadata.create_all(engine)
+
+def record_day_pass(venue_id: int):
+    today = date.today().isoformat()
+    with Session(engine) as session:
+        exists = session.exec(
+            select(DayPass).where(DayPass.venue_id == venue_id, DayPass.date == today)
+        ).first()
+        if not exists:
+            session.add(DayPass(venue_id=venue_id, date=today))
+            session.commit()
+
+def get_day_passes(venue_id: int):
+    with Session(engine) as session:
+        return session.exec(
+            select(DayPass).where(DayPass.venue_id == venue_id)
+        ).all()
+
+init_db()
 
 @app.get("/admin/results/{venue_id}", response_class=HTMLResponse)
 def admin_results(request: Request, venue_id: int):
