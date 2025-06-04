@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>DayPass Dashboard</title>
+  <style>
+    body { font-family: sans-serif; margin: 40px; }
+    .section { border: 1px solid #ccc; padding: 20px; border-radius: 10px; margin-bottom: 20px; }
+    select, button { margin-right: 10px; padding: 6px 12px; }
+    table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+    th, td { border: 1px solid #ccc; padding: 8px; text-align: left; }
+    th { background-color: #f0f0f0; }
+  </style>
+</head>
+<body>
+<h1>DayPass Dashboard</h1>
+
+<div class="section">
+  <label>Select Club:</label>
+  <select id="club-select">
+    {% for club in clubs %}
+      <option value="{{ club.id }}">{{ club.name }}</option>
+    {% endfor %}
+  </select>
+  <button onclick="loadDaypassData()">Load</button>
+</div>
+
+<div class="section">
+  <h3>Totals</h3>
+  <p><strong>All-Time:</strong> <span id="total-all">0</span></p>
+  <p><strong>This Month:</strong> <span id="total-month">0</span></p>
+</div>
+
+<div class="section">
+  <h3>Last 30 Logs</h3>
+  <table>
+    <thead>
+      <tr><th>Venue</th><th>Timestamp</th></tr>
+    </thead>
+    <tbody id="log-table">
+      <tr><td colspan="2">No data loaded.</td></tr>
+    </tbody>
+  </table>
+</div>
+
+<div class="section">
+  <h3>Export</h3>
+  <label>Year:</label>
+  <select id="year"></select>
+  <label>Month:</label>
+  <select id="month">
+    {% for m in range(1, 13) %}
+      <option value="{{ m }}">{{ m }}</option>
+    {% endfor %}
+  </select>
+  <button onclick="exportLogs()">Export</button>
+</div>
+
+<script>
+function loadDaypassData() {
+  const clubId = document.getElementById("club-select").value;
+  fetch(`/admin/daypass_data?club_id=${clubId}`)
+    .then(res => res.json())
+    .then(data => {
+      document.getElementById("total-all").textContent = data.all_time;
+      document.getElementById("total-month").textContent = data.this_month;
+      const tbody = document.getElementById("log-table");
+      tbody.innerHTML = "";
+      data.recent_logs.forEach(log => {
+        const row = document.createElement("tr");
+        row.innerHTML = `<td>${log.venue}</td><td>${log.timestamp}</td>`;
+        tbody.appendChild(row);
+      });
+    });
+}
+
+function exportLogs() {
+  const clubId = document.getElementById("club-select").value;
+  const year = document.getElementById("year").value;
+  const month = document.getElementById("month").value;
+  window.open(`/admin/daypass_export?club_id=${clubId}&year=${year}&month=${month}`, "_blank");
+}
+
+window.onload = function () {
+  const yearSelect = document.getElementById("year");
+  const currentYear = new Date().getFullYear();
+  for (let y = currentYear; y >= currentYear - 5; y--) {
+    const opt = document.createElement("option");
+    opt.value = y;
+    opt.textContent = y;
+    yearSelect.appendChild(opt);
+  }
+  yearSelect.value = currentYear;
+}
+</script>
+</body>
+</html>
