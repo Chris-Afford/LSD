@@ -1,52 +1,85 @@
 # scoreboard.py
-from fastapi import APIRouter, Request, Form, Depends, HTTPException
+from fastapi import APIRouter, Request, Form, Depends, HTTPException, Response, WebSocket, WebSocketDisconnect
 from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
 from sqlmodel import Session, select
-from passlib.hash import bcrypt
 from starlette.middleware.sessions import SessionMiddleware
+from passlib.hash import bcrypt
+import secrets
+import os
+import json
 
 from database import engine
-from models import Club, Venue
+from models import Club
 
 router = APIRouter()
 templates = Jinja2Templates(directory="templates")
 
-# Scoreboard Login Page
-@router.get("/scoreboard/login", response_class=HTMLResponse)
+# Store WebSocket connections for scoreboards
+scoreboard_connections = {}
+
+# Scoreboard login page
+@router.get("/scoreboard", response_class=HTMLResponse)
 def scoreboard_login_page(request: Request):
     return templates.TemplateResponse("scoreboard_login.html", {"request": request})
 
-# Handle Login Submission
+# Scoreboard login handler
 @router.post("/scoreboard/login")
-def scoreboard_login(request: Request, username: str = Form(...), password: str = Form(...)):
+def scoreboard_login(
+    request: Request,
+    response: Response,
+    username: str = Form(...),
+    password: str = Form(...),
+    remember: bool = Form(False)
+):
     with Session(engine) as session:
         club = session.exec(select(Club).where(Club.username == username)).first()
         if not club or not bcrypt.verify(password, club.password_hash):
-            return templates.TemplateResponse("scoreboard_login.html", {
-                "request": request,
-                "error": "Invalid login"
-            })
+            raise HTTPException(status_code=401, detail="Invalid login")
+
         request.session["club_id"] = club.id
+        if remember:
+            request.session["remember"] = True
+
         return RedirectResponse(url=f"/scoreboard/view", status_code=302)
 
-# Scoreboard Display Page
+# Scoreboard view page
 @router.get("/scoreboard/view", response_class=HTMLResponse)
 def scoreboard_view(request: Request):
     club_id = request.session.get("club_id")
     if not club_id:
-        return RedirectResponse(url="/scoreboard/login")
+        return RedirectResponse(url="/scoreboard")
 
-    with Session(engine) as session:
-        venues = session.exec(select(Venue).where(Venue.club_id == club_id)).all()
-        venue_names = [v.name for v in venues]
+    filename = f"results_club_{club_id}.json"
+    result = {}
+    if os.path.exists(filename):
+        with open(filename, "r") as f:
+            result = json.load(f)
 
-    return templates.TemplateResponse("scoreboard_view.html", {
-        "request": request,
-        "club_id": club_id,
-        "venue_names": venue_names
-    })
+    return templates.TemplateResponse("scoreboard_display.html", {"request": request, "club_id": club_id, "result": result})
 
-def register_scoreboard_routes(app):
+# WebSocket for scoreboard
+@router.websocket("/scoreboard/ws/{club_id}")
+async def scoreboard_ws(websocket: WebSocket, club_id: int):
+    await websocket.accept()
+    if club_id not in scoreboard_connections:
+        scoreboard_connections[club_id] = []
+    scoreboard_connections[club_id].append(websocket)
+    try:
+        while True:
+            await websocket.receive_text()  # keep-alive only
+    except WebSocketDisconnect:
+        scoreboard_connections[club_id].remove(websocket)
+
+# External broadcast function (to be imported where needed)
+async def broadcast_to_scoreboard(club_id: int, result_data: dict):
+    if club_id in scoreboard_connections:
+        for ws in scoreboard_connections[club_id]:
+            try:
+                await ws.send_json(result_data)
+            except:
+                continue
+
+# Register scoreboard routes
+def register_scoreboard(app):
     app.include_router(router)
-    app.add_middleware(SessionMiddleware, secret_key="your-secret-key")
