@@ -6,11 +6,12 @@ from database import engine
 from routes import register_routes
 from scoreboard import router as scoreboard_router
 
-app.include_router(scoreboard_router, prefix="/scoreboard")
-
 
 app = FastAPI()
 templates = Jinja2Templates(directory="templates")
+
+app.include_router(scoreboard_router, prefix="/scoreboard")
+
 
 @app.on_event("startup")
 def on_startup():
