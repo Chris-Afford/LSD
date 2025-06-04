@@ -13,13 +13,13 @@ from starlette.middleware.sessions import SessionMiddleware
 app = FastAPI()
 templates = Jinja2Templates(directory="templates")
 
+app.include_router(scoreboard_router, prefix="/scoreboard")
+app.add_middleware(SessionMiddleware, secret_key="supersecretkey")
 
 @app.on_event("startup")
 def on_startup():
     SQLModel.metadata.create_all(engine)
 
-app.include_router(scoreboard_router, prefix="/scoreboard")
-app.add_middleware(SessionMiddleware, secret_key="supersecretkey")
 
 register_routes(app)
 register_scoreboard(app)
