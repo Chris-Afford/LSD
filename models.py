@@ -2,6 +2,7 @@
 from typing import Optional
 from sqlmodel import SQLModel, Field
 from pydantic import BaseModel
+from datetime import datetime
 
 class Club(SQLModel, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
@@ -17,7 +18,7 @@ class Venue(SQLModel, table=True):
 class DayPass(SQLModel, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
     venue_id: int
-    date: str
+    timestamp: datetime
 
 class Result(BaseModel):
     timestamp: str
