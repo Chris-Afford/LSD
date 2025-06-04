@@ -1,6 +1,6 @@
 # routes.py
 from fastapi import Request, Form, Depends, HTTPException, WebSocket, WebSocketDisconnect
-from fastapi.responses import HTMLResponse, RedirectResponse
+from fastapi.responses import HTMLResponse, RedirectResponse, FileResponse
 from fastapi.security import HTTPBasic, HTTPBasicCredentials
 from fastapi.routing import APIRouter
 from sqlmodel import Session, select
@@ -8,11 +8,12 @@ from passlib.hash import bcrypt
 import secrets
 import os
 import json
-from datetime import datetime, timedelta
+from datetime import date, datetime, timedelta
 
 from database import engine
 from models import Club, Venue, Result, DayPass  # Ensure DayPass exists in models.py
 from fastapi.templating import Jinja2Templates
+from fastapi import Query
 
 router = APIRouter()
 templates = Jinja2Templates(directory="templates")
@@ -45,28 +46,21 @@ def login(credentials: dict):
         venues = session.exec(select(Venue).where(Venue.club_id == club.id)).all()
         return {"club_id": club.id, "venues": [v.name for v in venues]}
 
-# Day Pass
+# Record day pass
 def record_day_pass(venue_name: str, club_id: int):
     now = datetime.utcnow()
-
     with Session(engine) as session:
-        venue = session.exec(
-            select(Venue).where(Venue.name == venue_name, Venue.club_id == club_id)
-        ).first()
-
-        if not venue:
-            return
-
-        latest_pass = session.exec(
+        recent = session.exec(
             select(DayPass)
-            .where(DayPass.venue_id == venue.id)
+            .where(DayPass.club_id == club_id)
             .order_by(DayPass.timestamp.desc())
         ).first()
 
-        if not latest_pass or (now - latest_pass.timestamp > timedelta(hours=24)):
-            session.add(DayPass(venue_id=venue.id, timestamp=now))
+        if not recent or now - recent.timestamp > timedelta(hours=24):
+            session.add(DayPass(club_id=club_id, venue_name=venue_name, timestamp=now))
             session.commit()
 
+# Submit result
 @router.post("/submit/{club_id}")
 async def submit_result(club_id: int, result: Result):
     result_data = result.dict()
@@ -95,7 +89,6 @@ async def submit_result(club_id: int, result: Result):
 
     return {"status": "ok"}
 
-
 # WebSocket endpoint
 @router.websocket("/ws/{club_id}")
 async def websocket_endpoint(websocket: WebSocket, club_id: int):
@@ -121,6 +114,50 @@ def admin_dashboard(request: Request, username: str = Depends(verify_admin)):
         "clubs": clubs,
         "venues": venues
     })
+
+@router.get("/admin/daypass_dashboard", response_class=HTMLResponse)
+def daypass_dashboard(request: Request, username: str = Depends(verify_admin)):
+    with Session(engine) as session:
+        clubs = session.exec(select(Club)).all()
+    return templates.TemplateResponse("daypass_dashboard.html", {"request": request, "clubs": clubs})
+
+@router.get("/admin/daypass_data")
+def get_daypass_data(club_id: int = Query(...)):
+    with Session(engine) as session:
+        logs = session.exec(
+            select(DayPass).where(DayPass.club_id == club_id).order_by(DayPass.timestamp.desc())
+        ).all()
+        now = datetime.utcnow()
+        month_total = sum(1 for p in logs if p.timestamp.month == now.month and p.timestamp.year == now.year)
+        all_time_total = len(logs)
+        last_30 = [
+            {"venue": p.venue_name, "timestamp": p.timestamp.strftime("%Y-%m-%d %H:%M:%S")}
+            for p in logs[:30]
+        ]
+    return {
+        "all_time": all_time_total,
+        "this_month": month_total,
+        "recent_logs": last_30
+    }
+
+@router.get("/admin/daypass_export")
+def export_daypasses(club_id: int = Query(...), year: int = Query(...), month: int = Query(...)):
+    with Session(engine) as session:
+        logs = session.exec(
+            select(DayPass).where(
+                DayPass.club_id == club_id,
+                DayPass.timestamp.month == month,
+                DayPass.timestamp.year == year
+            ).order_by(DayPass.timestamp.asc())
+        ).all()
+    lines = [
+        f"{p.timestamp.strftime('%Y-%m-%d %H:%M:%S')} - {p.venue_name}"
+        for p in logs
+    ]
+    export_file = f"export_daypasses_{club_id}_{year}_{month}.txt"
+    with open(export_file, "w") as f:
+        f.write("\n".join(lines))
+    return FileResponse(export_file, filename=export_file, media_type="text/plain")
 
 @router.post("/admin/add_club", response_class=RedirectResponse)
 def add_club(
@@ -170,16 +207,6 @@ def admin_results(request: Request, club_id: int, username: str = Depends(verify
         all_data = json.load(f)
 
     return templates.TemplateResponse("admin_results.html", {"request": request, "result": all_data})
-
-@router.get("/admin/daypasses/{club_id}", response_class=HTMLResponse)
-def view_daypasses(request: Request, club_id: int, username: str = Depends(verify_admin)):
-    with Session(engine) as session:
-        venues = session.exec(select(Venue).where(Venue.club_id == club_id)).all()
-        all_passes = []
-        for v in venues:
-            passes = session.exec(select(DayPass).where(DayPass.venue_id == v.id)).all()
-            all_passes.append((v.name, passes))
-    return templates.TemplateResponse("daypasses.html", {"request": request, "passes": all_passes})
 
 def register_routes(app):
     app.include_router(router)
