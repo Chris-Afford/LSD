@@ -1,16 +1,18 @@
-from fastapi import FastAPI, Request, Form, Depends, HTTPException
+from fastapi import FastAPI, Request, Form, Depends, HTTPException, WebSocket, WebSocketDisconnect
 from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
 from fastapi.security import HTTPBasic, HTTPBasicCredentials
 from sqlmodel import SQLModel, create_engine, Session, select, Field
-from typing import Optional
+from typing import Optional, Dict, List
 from passlib.hash import bcrypt
 from pydantic import BaseModel
+from server import app, engine, Club  # Reuse existing models and FastAPI app
 import secrets
 import json
 import uvicorn
 from datetime import date
 import os
+
 
 # Setup
 app = FastAPI()
@@ -175,6 +177,54 @@ def view_daypasses(request: Request, club_id: int, username: str = Depends(verif
             passes = session.exec(select(DayPass).where(DayPass.venue_id == v.id)).all()
             all_passes.append((v.name, passes))
     return templates.TemplateResponse("daypasses.html", {"request": request, "passes": all_passes})
+
+# In-memory connection store
+connections: Dict[int, List[WebSocket]] = {}
+
+@app.websocket("/ws/{club_id}")
+async def websocket_endpoint(websocket: WebSocket, club_id: int):
+    await websocket.accept()
+    if club_id not in connections:
+        connections[club_id] = []
+    connections[club_id].append(websocket)
+    try:
+        while True:
+            await websocket.receive_text()  # Keep alive, ignore content
+    except WebSocketDisconnect:
+        connections[club_id].remove(websocket)
+        if not connections[club_id]:
+            del connections[club_id]
+
+# Broadcast function
+async def broadcast_result(club_id: int, result_data: dict):
+    if club_id in connections:
+        for ws in connections[club_id]:
+            try:
+                await ws.send_json(result_data)
+            except Exception:
+                connections[club_id].remove(ws)
+
+# Update /submit route in main server to call broadcast_result
+@app.post("/submit/{club_id}")
+async def submit_result(club_id: int, result: dict):
+    filename = f"results_club_{club_id}.json"
+
+    if not os.path.exists(filename):
+        with open(filename, "w") as f:
+            json.dump({}, f)
+
+    with open(filename, "r") as f:
+        existing_data = json.load(f)
+
+    existing_data[result["venue_name"]] = result
+
+    with open(filename, "w") as f:
+        json.dump(existing_data, f, indent=2)
+
+    await broadcast_result(club_id, result)
+
+    return {"status": "ok"}
+
 
 # Dev run
 if __name__ == "__main__":
