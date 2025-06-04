@@ -6,7 +6,7 @@ from database import engine
 from routes import register_routes
 from scoreboard import router as scoreboard_router
 
-app.include_router(scoreboard_router)
+app.include_router(scoreboard_router, prefix="/scoreboard")
 
 
 app = FastAPI()
