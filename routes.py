@@ -11,7 +11,7 @@ import json
 from datetime import date
 
 from database import engine
-from models import Club, Venue, Result, DayPass
+from models import Club, Venue, Result, DayPass  # Ensure DayPass exists in models.py
 from fastapi.templating import Jinja2Templates
 
 router = APIRouter()
