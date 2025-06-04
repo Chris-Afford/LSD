@@ -8,7 +8,7 @@ from passlib.hash import bcrypt
 import secrets
 import os
 import json
-from datetime import date
+from datetime import datetime, timedelta
 
 from database import engine
 from models import Club, Venue, Result, DayPass  # Ensure DayPass exists in models.py
@@ -44,6 +44,28 @@ def login(credentials: dict):
 
         venues = session.exec(select(Venue).where(Venue.club_id == club.id)).all()
         return {"club_id": club.id, "venues": [v.name for v in venues]}
+
+# Day Pass
+def record_day_pass(venue_name: str, club_id: int):
+    now = datetime.utcnow()
+
+    with Session(engine) as session:
+        venue = session.exec(
+            select(Venue).where(Venue.name == venue_name, Venue.club_id == club_id)
+        ).first()
+
+        if not venue:
+            return
+
+        latest_pass = session.exec(
+            select(DayPass)
+            .where(DayPass.venue_id == venue.id)
+            .order_by(DayPass.timestamp.desc())
+        ).first()
+
+        if not latest_pass or (now - latest_pass.timestamp > timedelta(hours=24)):
+            session.add(DayPass(venue_id=venue.id, timestamp=now))
+            session.commit()
 
 # Submit result
 @router.post("/submit/{club_id}")
