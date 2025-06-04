@@ -4,6 +4,9 @@ from fastapi.templating import Jinja2Templates
 from sqlmodel import SQLModel
 from database import engine
 from routes import register_routes
+from scoreboard import router as scoreboard_router
+app.include_router(scoreboard_router)
+
 
 app = FastAPI()
 templates = Jinja2Templates(directory="templates")
