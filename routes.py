@@ -116,9 +116,10 @@ def admin_dashboard(request: Request, username: str = Depends(verify_admin)):
     })
 
 #Default Page
-@app.get("/", include_in_schema=False)
-def root_redirect():
-    return RedirectResponse(url="/scoreboard")
+def register_routes(app):
+    @app.get("/", include_in_schema=False)
+    def root_redirect():
+        return RedirectResponse(url="/scoreboard")
 
 @router.get("/admin/daypass_dashboard", response_class=HTMLResponse)
 def daypass_dashboard(request: Request, username: str = Depends(verify_admin)):
