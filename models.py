@@ -17,7 +17,7 @@ class Venue(SQLModel, table=True):
 
 class DayPass(SQLModel, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
-    venue_id: int
+    club_id: int
     timestamp: datetime
 
 class Result(BaseModel):
