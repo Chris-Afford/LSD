@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Live Scoreboard</title>
+    <style>
+        body {
+            font-family: sans-serif;
+            background-color: #111;
+            color: #fff;
+            padding: 30px;
+        }
+        .venue {
+            font-size: 2em;
+            margin-bottom: 20px;
+        }
+        .status {
+            font-size: 1.5em;
+            margin-bottom: 10px;
+        }
+        .messages {
+            font-size: 1.2em;
+            margin-bottom: 15px;
+        }
+        .results {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 20px;
+        }
+        .result-card {
+            background-color: #222;
+            padding: 15px 25px;
+            border-radius: 10px;
+            min-width: 150px;
+        }
+        .track {
+            margin-top: 30px;
+            font-size: 1.1em;
+            color: #aaa;
+        }
+    </style>
+</head>
+<body>
+    <div class="venue" id="venue">Venue Name</div>
+    <div class="status" id="status">Race Status</div>
+    <div class="messages">
+        <div id="message1">Message Line 1</div>
+        <div id="message2">Message Line 2</div>
+    </div>
+    <div class="results" id="results"></div>
+    <div class="track" id="track">Track Condition: Good 4 | Correct Weight: No</div>
+
+    <script>
+        const clubId = {{ club_id }};
+        const ws = new WebSocket(`wss://${location.host}/scoreboard/ws/${clubId}`);
+
+        ws.onmessage = (event) => {
+            const data = JSON.parse(event.data);
+            document.getElementById("venue").textContent = data.venue_name || "Venue Name";
+            document.getElementById("status").textContent = data.status || "Race Status";
+            document.getElementById("message1").textContent = data.message1 || "";
+            document.getElementById("message2").textContent = data.message2 || "";
+
+            const resultsEl = document.getElementById("results");
+            resultsEl.innerHTML = "";
+            if (data.runners) {
+                data.runners.slice(0, 6).forEach((runner, idx) => {
+                    const card = document.createElement("div");
+                    card.className = "result-card";
+                    card.innerHTML = `<strong>${idx + 1}. ${runner}</strong>`;
+                    resultsEl.appendChild(card);
+                });
+            }
+
+            document.getElementById("track").textContent = `Track Condition: ${data.track_condition} | Correct Weight: ${data.correct_weight}`;
+        };
+    </script>
+</body>
+</html>
