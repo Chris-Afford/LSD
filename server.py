@@ -6,6 +6,8 @@ from database import engine
 from routes import register_routes
 from scoreboard import router as scoreboard_router
 from scoreboard import register_scoreboard
+from starlette.middleware.sessions import SessionMiddleware
+
 
 
 app = FastAPI()
@@ -17,6 +19,7 @@ def on_startup():
     SQLModel.metadata.create_all(engine)
 
 app.include_router(scoreboard_router, prefix="/scoreboard")
+app.add_middleware(SessionMiddleware, secret_key="supersecretkey")
 
 register_routes(app)
 register_scoreboard(app)
