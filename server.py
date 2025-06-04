@@ -226,6 +226,3 @@ async def submit_result(club_id: int, result: dict):
     return {"status": "ok"}
 
 
-# Dev run
-if __name__ == "__main__":
-    uvicorn.run("server:app", host="0.0.0.0", port=8000, reload=True)
