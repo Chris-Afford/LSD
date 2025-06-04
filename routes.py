@@ -1,5 +1,5 @@
 # routes.py
-from fastapi import Request, Form, Depends, HTTPException
+from fastapi import Request, Form, Depends, HTTPException, WebSocket, WebSocketDisconnect
 from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.security import HTTPBasic, HTTPBasicCredentials
 from fastapi.routing import APIRouter
@@ -17,6 +17,9 @@ router = APIRouter()
 
 ADMIN_USERNAME = "Felix"
 ADMIN_PASSWORD = bcrypt.hash("1973")
+
+# Dictionary to manage connected websocket clients per club
+websocket_connections = {}
 
 def verify_admin(credentials: HTTPBasicCredentials = Depends(HTTPBasic())):
     if not secrets.compare_digest(credentials.username, ADMIN_USERNAME):
@@ -55,7 +58,29 @@ def submit_result(club_id: int, result: Result):
     with open(filename, "w") as f:
         json.dump(existing_data, f, indent=2)
 
+    # WebSocket broadcast to connected clients
+    if club_id in websocket_connections:
+        for connection in websocket_connections[club_id]:
+            try:
+                connection.send_json(result_data)
+            except:
+                continue  # Skip broken connections
+
     return {"status": "ok"}
+
+@router.websocket("/ws/{club_id}")
+async def websocket_endpoint(websocket: WebSocket, club_id: int):
+    await websocket.accept()
+    if club_id not in websocket_connections:
+        websocket_connections[club_id] = []
+    websocket_connections[club_id].append(websocket)
+
+    try:
+        while True:
+            await websocket.receive_text()  # keep connection alive
+    except WebSocketDisconnect:
+        websocket_connections[club_id].remove(websocket)
+
 
 def register_routes(app):
     app.include_router(router)
