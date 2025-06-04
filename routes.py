@@ -67,7 +67,6 @@ def record_day_pass(venue_name: str, club_id: int):
             session.add(DayPass(venue_id=venue.id, timestamp=now))
             session.commit()
 
-# Submit result
 @router.post("/submit/{club_id}")
 async def submit_result(club_id: int, result: Result):
     result_data = result.dict()
@@ -85,6 +84,8 @@ async def submit_result(club_id: int, result: Result):
     with open(filename, "w") as f:
         json.dump(existing_data, f, indent=2)
 
+    record_day_pass(result_data["venue_name"], club_id)
+
     if club_id in websocket_connections:
         for connection in websocket_connections[club_id]:
             try:
@@ -93,6 +94,7 @@ async def submit_result(club_id: int, result: Result):
                 continue
 
     return {"status": "ok"}
+
 
 # WebSocket endpoint
 @router.websocket("/ws/{club_id}")
