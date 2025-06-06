@@ -1,7 +1,7 @@
 # routes.py
 from fastapi import Request, Form, Depends, HTTPException, WebSocket, WebSocketDisconnect
-from fastapi.responses import HTMLResponse
-from scoreboard import broadcast_scoreboard, RedirectResponse, FileResponse
+from fastapi.responses import HTMLResponse, RedirectResponse, FileResponse
+from scoreboard import broadcast_scoreboard
 from fastapi.security import HTTPBasic, HTTPBasicCredentials
 from fastapi.routing import APIRouter
 from sqlmodel import Session, select
