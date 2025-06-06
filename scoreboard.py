@@ -5,6 +5,7 @@ from fastapi.templating import Jinja2Templates
 from sqlmodel import Session, select
 from starlette.middleware.sessions import SessionMiddleware
 from passlib.hash import bcrypt
+from starlette.websockets import WebSocketState
 import secrets
 import os
 import json
@@ -85,18 +86,14 @@ def register_scoreboard(app):
     app.include_router(router)
 
 
-from starlette.websockets import WebSocketState
-
-# Dictionary to store WebSocket connections per club_id
-scoreboard_clients = {}
-
 async def broadcast_scoreboard(club_id: int, data: dict):
-    if club_id in scoreboard_clients:
+    """Send data to all connected scoreboards for the given club."""
+    if club_id in scoreboard_connections:
         disconnected = []
-        for ws in scoreboard_clients[club_id]:
+        for ws in scoreboard_connections[club_id]:
             if ws.application_state == WebSocketState.CONNECTED:
                 await ws.send_json(data)
             else:
                 disconnected.append(ws)
         for ws in disconnected:
-            scoreboard_clients[club_id].remove(ws)
+            scoreboard_connections[club_id].remove(ws)

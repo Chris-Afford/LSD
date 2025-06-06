@@ -88,6 +88,9 @@ async def submit_result(club_id: int, result: Result):
             except:
                 continue
 
+    # Also broadcast to connected scoreboard displays
+    await broadcast_scoreboard(club_id, result_data)
+
     return {"status": "ok"}
 
 # WebSocket endpoint
@@ -195,14 +198,16 @@ def add_venue(
 @router.post("/admin/delete_venue")
 async def delete_venue(request: Request):
     data = await request.json()
-    await broadcast_scoreboard(venue_id, data)
     venue_id = data.get("venue_id")
 
     with Session(engine) as session:
         venue = session.get(Venue, venue_id)
         if venue:
+            club_id = venue.club_id
             session.delete(venue)
             session.commit()
+            # Notify connected scoreboards to refresh venue list
+            await broadcast_scoreboard(club_id, {"action": "delete_venue", "venue_id": venue_id})
     return {"status": "ok"}
 
 @router.get("/admin/results/{club_id}", response_class=HTMLResponse)
