@@ -94,18 +94,6 @@
                 font-size: 1.8vw;
             }
         }
-        .logo-footer {
-            margin-top: 4vh;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-        }
-
-        .logo-footer img {
-            max-width: 90%;
-            height: auto;
-            max-height: 20vh;
-        }
     </style>
 </head>
 <body>
@@ -135,12 +123,8 @@
             throw new Error("Missing club_id in URL");
         }
 
-        const ws = new WebSocket(`wss://${location.host}/scoreboard/ws/${clubId}`);
-
-        ws.onmessage = (event) => {
-            const data = JSON.parse(event.data);
-
-            // Top 6 horse IDs with positions
+        /** Update the scoreboard display with the given data */
+        function updateScoreboard(data) {
             const topSix = document.getElementById("topSix");
             topSix.innerHTML = "";
             if (data.runners) {
@@ -152,27 +136,22 @@
                     topSix.appendChild(div);
                 });
 
-                // Display winner's time
                 const winner = data.runners[0];
                 const parts = winner.split(" ");
                 const time = parts.find(p => p.match(/\d+:\d+\.\d+/));
                 document.getElementById("winnerTime").textContent = time ? `Time: ${time}` : "";
             }
 
-            // Correct weight display
             const correctWeightEl = document.getElementById("correctWeight");
             correctWeightEl.textContent = (data.correct_weight?.toLowerCase() === "yes") ? "Correct Weight" : "";
 
-            // Venue name and track condition
             const venue = data.venue_name || "Venue Name";
             const condition = data.track_condition || "Unknown";
             document.getElementById("venueInfo").textContent = `${venue} - ${condition}`;
 
-            // Messages
             document.getElementById("message1").textContent = `Margins: ${data.message1 || ""}`;
             document.getElementById("message2").textContent = `Announcement: ${data.message2 || ""}`;
 
-            // Full runner list without times
             const resultsEl = document.getElementById("results");
             resultsEl.innerHTML = "";
             if (data.runners) {
@@ -184,7 +163,20 @@
                     resultsEl.appendChild(card);
                 });
             }
+        }
+
+        const ws = new WebSocket(`wss://${location.host}/scoreboard/ws/${clubId}`);
+
+        ws.onmessage = (event) => {
+            const data = JSON.parse(event.data);
+            updateScoreboard(data);
         };
+
+        // Render any existing result passed from the server on page load
+        const initialData = {{ result | tojson | safe }};
+        if (Object.keys(initialData).length > 0) {
+            updateScoreboard(initialData);
+        }
     </script>
 
     <!-- Logo at the bottom -->
