@@ -35,7 +35,7 @@
   <h3>Last 30 Logs</h3>
   <table>
     <thead>
-      <tr><th>Club</th><th>Timestamp</th></tr>
+      <tr><th>Venue</th><th>Timestamp</th></tr>
     </thead>
     <tbody id="log-table">
       <tr><td colspan="2">No data loaded.</td></tr>
@@ -68,7 +68,7 @@ function loadDaypassData() {
       tbody.innerHTML = "";
       data.recent_logs.forEach(log => {
         const row = document.createElement("tr");
-        row.innerHTML = `<td>${log.club}</td><td>${log.timestamp}</td>`;
+        row.innerHTML = `<td>${log.venue}</td><td>${log.timestamp}</td>`;
         tbody.appendChild(row);
       });
     });
