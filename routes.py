@@ -1,6 +1,7 @@
 # routes.py
 from fastapi import Request, Form, Depends, HTTPException, WebSocket, WebSocketDisconnect
-from fastapi.responses import HTMLResponse, RedirectResponse, FileResponse
+from fastapi.responses import HTMLResponse
+from scoreboard import broadcast_scoreboard, RedirectResponse, FileResponse
 from fastapi.security import HTTPBasic, HTTPBasicCredentials
 from fastapi.routing import APIRouter
 from sqlmodel import Session, select
@@ -194,6 +195,7 @@ def add_venue(
 @router.post("/admin/delete_venue")
 async def delete_venue(request: Request):
     data = await request.json()
+    await broadcast_scoreboard(venue_id, data)
     venue_id = data.get("venue_id")
 
     with Session(engine) as session:
