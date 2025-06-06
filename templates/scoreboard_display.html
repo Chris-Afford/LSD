@@ -10,10 +10,20 @@
             color: #fff;
             padding: 30px;
         }
+7ghm4s-codex/fix-scoreboard-data-update-issue
         .horse-ids {
             display: flex;
             justify-content: space-between;
             margin-bottom: 20px;
+
+        .venue {
+            font-size: 2em;
+            margin-bottom: 10px;
+        }
+        .race {
+            font-size: 1.5em;
+            margin-bottom: 15px;
+main
         }
         .horse {
             position: relative;
@@ -51,9 +61,14 @@
     </style>
 </head>
 <body>
+7ghm4s-codex/fix-scoreboard-data-update-issue
     <div class="horse-ids" id="horse-ids"></div>
     <div class="divider"></div>
     <div class="center-info" id="venue-track">Venue - Track</div>
+
+    <div class="venue" id="venue">Venue Name</div>
+    <div class="race" id="race"></div>
+ main
     <div class="messages">
         <div id="message1"></div>
         <div id="message2"></div>
@@ -87,6 +102,7 @@
             console.log("Received data:", event.data);
             const data = JSON.parse(event.data);
 
+7ghm4s-codex/fix-scoreboard-data-update-issue
             const horseEl = document.getElementById("horse-ids");
             horseEl.innerHTML = "";
             if (data.runners) {
@@ -105,6 +121,12 @@
                 data.message1 ? `Margins: ${data.message1}` : "";
             document.getElementById("message2").textContent =
                 data.message2 ? `Announcement: ${data.message2}` : "";
+
+            document.getElementById("venue").textContent = data.venue_name || "Venue Name";
+            document.getElementById("race").textContent = data.race ? `Race ${data.race}` : "";
+            document.getElementById("message1").textContent = data.message1 || "";
+            document.getElementById("message2").textContent = data.message2 || "";
+ main
 
             const resultsEl = document.getElementById("results");
             resultsEl.innerHTML = "";
