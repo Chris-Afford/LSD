@@ -22,6 +22,12 @@ app.add_middleware(SessionMiddleware, secret_key="supersecretkey")
 @app.on_event("startup")
 def on_startup():
     SQLModel.metadata.create_all(engine)
+    # Ensure new columns exist for older databases
+    with engine.begin() as conn:
+        info = conn.exec_driver_sql("PRAGMA table_info(daypass)").fetchall()
+        cols = [row[1] for row in info]
+        if "club_name" not in cols:
+            conn.exec_driver_sql("ALTER TABLE daypass ADD COLUMN club_name TEXT")
 
 
 register_routes(app)
