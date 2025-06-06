@@ -138,7 +138,7 @@ def get_daypass_data(club_id: int = Query(...)):
         month_total = sum(1 for p in logs if p.timestamp.month == now.month and p.timestamp.year == now.year)
         all_time_total = len(logs)
         last_30 = [
-            {"venue": p.venue_name, "timestamp": p.timestamp.strftime("%Y-%m-%d %H:%M:%S")}
+            {"venue": p.club.name, "timestamp": p.timestamp.strftime("%Y-%m-%d %H:%M:%S")}
             for p in logs[:30]
         ]
     return {
