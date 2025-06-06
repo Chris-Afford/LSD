@@ -42,15 +42,15 @@
         }
         .results {
             display: flex;
-            flex-wrap: wrap;
-            gap: 20px;
-            justify-content: center;
+            flex-direction: column;
+            align-items: center;
+            gap: 10px;
         }
         .result-card {
             background-color: #222;
             padding: 15px 25px;
             border-radius: 10px;
-            min-width: 150px;
+            min-width: 300px;
         }
     </style>
 </head>
@@ -89,9 +89,10 @@
             topSix.innerHTML = "";
             if (data.runners) {
                 data.runners.slice(0, 6).forEach((runner, idx) => {
+                    const idOnly = runner.split(" ")[0];
                     const div = document.createElement("div");
                     div.className = "horse";
-                    div.innerHTML = `<div class='horse-id'>${runner}</div><div class='position'>${idx + 1}</div>`;
+                    div.innerHTML = `<div class='horse-id'>${idOnly}</div><div class='position'>${idx + 1}</div>`;
                     topSix.appendChild(div);
                 });
             }
