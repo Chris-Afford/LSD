@@ -9,6 +9,7 @@ from starlette.websockets import WebSocketState
 import secrets
 import os
 import json
+from datetime import datetime
 
 from database import engine
 from models import Club
@@ -57,7 +58,22 @@ def scoreboard_view(request: Request):
     result = {}
     if os.path.exists(filename):
         with open(filename, "r") as f:
-            result = json.load(f)
+            all_results = json.load(f)
+
+        if isinstance(all_results, dict) and all_results:
+            latest_result = None
+            latest_ts = None
+            for r in all_results.values():
+                ts_str = r.get("timestamp")
+                try:
+                    ts = datetime.fromisoformat(ts_str)
+                except Exception:
+                    ts = None
+                if latest_ts is None or (ts and ts > latest_ts):
+                    latest_ts = ts
+                    latest_result = r
+            if latest_result:
+                result = latest_result
 
     return templates.TemplateResponse("scoreboard_display.html", {"request": request, "club_id": club_id, "result": result})
 
