@@ -12,7 +12,11 @@
         }
         .venue {
             font-size: 2em;
-            margin-bottom: 20px;
+            margin-bottom: 10px;
+        }
+        .race {
+            font-size: 1.5em;
+            margin-bottom: 15px;
         }
         .messages {
             font-size: 1.2em;
@@ -38,6 +42,7 @@
 </head>
 <body>
     <div class="venue" id="venue">Venue Name</div>
+    <div class="race" id="race"></div>
     <div class="messages">
         <div id="message1">Message Line 1</div>
         <div id="message2">Message Line 2</div>
@@ -73,6 +78,7 @@
             const data = JSON.parse(event.data);
 
             document.getElementById("venue").textContent = data.venue_name || "Venue Name";
+            document.getElementById("race").textContent = data.race ? `Race ${data.race}` : "";
             document.getElementById("message1").textContent = data.message1 || "";
             document.getElementById("message2").textContent = data.message2 || "";
 
