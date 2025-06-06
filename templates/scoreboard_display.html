@@ -42,9 +42,9 @@
             margin-top: 0.5vh;
         }
         .winner-time {
-            font-size: 3vw;
+            font-size: 6vw;
             margin-top: 1vh;
-            color: #aaa;
+            color: #fff;
         }
         .divider {
             border-bottom: 2px solid white;
@@ -82,7 +82,7 @@
                 font-size: 1.4vw;
             }
             .winner-time {
-                font-size: 1.5vw;
+                font-size: 3vw;
             }
             .venue-info {
                 font-size: 2vw;
@@ -144,7 +144,7 @@
                 const winner = data.runners[0];
                 const parts = winner.split(" ");
                 const time = parts.find(p => p.match(/\d+:\d+\.\d+/));
-                document.getElementById("winnerTime").textContent = time ? `Winner's Time: ${time}` : "";
+                document.getElementById("winnerTime").textContent = time ? `Time: ${time}` : "";
             }
 
             // Correct weight display
