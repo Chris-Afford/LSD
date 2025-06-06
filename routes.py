@@ -92,7 +92,7 @@ def parse_raw_message(raw: str):
     return race_no, runners
 
 # Record day pass
-def record_day_pass(venue_name: str, club_id: int):
+def record_day_pass(club_id: int):
     now = datetime.utcnow()
     with Session(engine) as session:
         recent = session.exec(
@@ -102,7 +102,9 @@ def record_day_pass(venue_name: str, club_id: int):
         ).first()
 
         if not recent or now - recent.timestamp > timedelta(hours=24):
-            session.add(DayPass(club_id=club_id, venue_name=venue_name, timestamp=now))
+            club = session.get(Club, club_id)
+            club_name = club.name if club else ""
+            session.add(DayPass(club_id=club_id, club_name=club_name, timestamp=now))
             session.commit()
 
 # Submit result
@@ -128,7 +130,7 @@ async def submit_result(club_id: int, result: Result):
     with open(filename, "w") as f:
         json.dump(existing_data, f, indent=2)
 
-    record_day_pass(result_data["venue_name"], club_id)
+    record_day_pass(club_id)
 
     if club_id in websocket_connections:
         for connection in websocket_connections[club_id]:
@@ -190,7 +192,10 @@ def get_daypass_data(club_id: int = Query(...)):
         month_total = sum(1 for p in logs if p.timestamp.month == now.month and p.timestamp.year == now.year)
         all_time_total = len(logs)
         last_30 = [
-            {"venue": p.club.name, "timestamp": p.timestamp.strftime("%Y-%m-%d %H:%M:%S")}
+            {
+                "club": p.club_name,
+                "timestamp": p.timestamp.strftime("%Y-%m-%d %H:%M:%S"),
+            }
             for p in logs[:30]
         ]
     return {
@@ -210,7 +215,7 @@ def export_daypasses(club_id: int = Query(...), year: int = Query(...), month: i
             ).order_by(DayPass.timestamp.asc())
         ).all()
     lines = [
-        f"{p.timestamp.strftime('%Y-%m-%d %H:%M:%S')} - {p.venue_name}"
+        f"{p.timestamp.strftime('%Y-%m-%d %H:%M:%S')} - {p.club_name}"
         for p in logs
     ]
     export_file = f"export_daypasses_{club_id}_{year}_{month}.txt"
