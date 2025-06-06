@@ -24,12 +24,27 @@
             flex: 1 1 10vw;
         }
         .horse-id {
-            font-size: 6vw;
+            font-size: clamp(5vw, 10vw, 12vh);
+        }
+        .horse.correct .horse-id {
+            color: lime;
+        }
+        .horse:not(.correct) .horse-id {
             color: white;
         }
         .position {
-            font-size: 3vw;
+            font-size: clamp(2vw, 4vw, 5vh);
             color: yellow;
+        }
+        .correct-weight {
+            font-size: 2.5vw;
+            color: #4CAF50;
+            margin-top: 0.5vh;
+        }
+        .winner-time {
+            font-size: 3vw;
+            margin-top: 1vh;
+            color: #aaa;
         }
         .divider {
             border-bottom: 2px solid white;
@@ -58,9 +73,15 @@
         }
         @media (min-width: 768px) {
             .horse-id {
-                font-size: 3vw;
+                font-size: clamp(3vw, 6vw, 8vh);
             }
             .position {
+                font-size: clamp(1.5vw, 3vw, 4vh);
+            }
+            .correct-weight {
+                font-size: 1.4vw;
+            }
+            .winner-time {
                 font-size: 1.5vw;
             }
             .venue-info {
@@ -77,6 +98,8 @@
 </head>
 <body>
     <div class="top-six" id="topSix"></div>
+    <div class="correct-weight" id="correctWeight"></div>
+    <div class="winner-time" id="winnerTime"></div>
     <div class="divider"></div>
 
     <div class="venue-info" id="venueInfo">Venue Name - Track Condition</div>
@@ -112,11 +135,21 @@
                 data.runners.slice(0, 6).forEach((runner, idx) => {
                     const idOnly = runner.split(" ")[0];
                     const div = document.createElement("div");
-                    div.className = "horse";
+                    div.className = "horse" + (data.correct_weight?.toLowerCase() === "yes" ? " correct" : "");
                     div.innerHTML = `<div class='horse-id'>${idOnly}</div><div class='position'>${idx + 1}</div>`;
                     topSix.appendChild(div);
                 });
+
+                // Display winner's time
+                const winner = data.runners[0];
+                const parts = winner.split(" ");
+                const time = parts.find(p => p.match(/\d+:\d+\.\d+/));
+                document.getElementById("winnerTime").textContent = time ? `Winner's Time: ${time}` : "";
             }
+
+            // Correct weight display
+            const correctWeightEl = document.getElementById("correctWeight");
+            correctWeightEl.textContent = (data.correct_weight?.toLowerCase() === "yes") ? "Correct Weight" : "";
 
             // Venue name and track condition
             const venue = data.venue_name || "Venue Name";
@@ -127,14 +160,15 @@
             document.getElementById("message1").textContent = `Margins: ${data.message1 || ""}`;
             document.getElementById("message2").textContent = `Announcement: ${data.message2 || ""}`;
 
-            // Full runner list
+            // Full runner list without times
             const resultsEl = document.getElementById("results");
             resultsEl.innerHTML = "";
             if (data.runners) {
                 data.runners.forEach((runner, idx) => {
+                    const idAndName = runner.replace(/\d+:\d+\.\d+/, '').trim();
                     const card = document.createElement("div");
                     card.className = "result-card";
-                    card.innerHTML = `<strong>${idx + 1}. ${runner}</strong>`;
+                    card.innerHTML = `<strong>${idx + 1}. ${idAndName}</strong>`;
                     resultsEl.appendChild(card);
                 });
             }
