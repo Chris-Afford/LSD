@@ -9,23 +9,42 @@
             background-color: #111;
             color: #fff;
             padding: 30px;
+            text-align: center;
         }
-        .venue {
-            font-size: 2em;
+        .top-six {
+            display: flex;
+            justify-content: center;
             margin-bottom: 10px;
         }
-        .race {
+        .horse {
+            margin: 0 10px;
+            text-align: center;
+        }
+        .horse-id {
+            font-size: 2.5em;
+            color: white;
+        }
+        .position {
+            font-size: 1.2em;
+            color: yellow;
+        }
+        .divider {
+            border-bottom: 2px solid white;
+            margin: 20px 0;
+        }
+        .venue-info {
             font-size: 1.5em;
-            margin-bottom: 15px;
+            margin-bottom: 10px;
         }
         .messages {
             font-size: 1.2em;
-            margin-bottom: 15px;
+            margin-bottom: 20px;
         }
         .results {
             display: flex;
             flex-wrap: wrap;
             gap: 20px;
+            justify-content: center;
         }
         .result-card {
             background-color: #222;
@@ -33,22 +52,19 @@
             border-radius: 10px;
             min-width: 150px;
         }
-        .track {
-            margin-top: 30px;
-            font-size: 1.1em;
-            color: #aaa;
-        }
     </style>
 </head>
 <body>
-    <div class="venue" id="venue">Venue Name</div>
-    <div class="race" id="race"></div>
+    <div class="top-six" id="topSix"></div>
+    <div class="divider"></div>
+
+    <div class="venue-info" id="venueInfo">Venue Name - Track Condition</div>
     <div class="messages">
-        <div id="message1">Message Line 1</div>
-        <div id="message2">Message Line 2</div>
+        <div id="message1">Margins:</div>
+        <div id="message2">Announcement:</div>
     </div>
+
     <div class="results" id="results"></div>
-    <div class="track" id="track">Track Condition: Good 4 | Correct Weight: No</div>
 
     <script>
         function getClubIdFromURL() {
@@ -65,36 +81,41 @@
 
         const ws = new WebSocket(`wss://${location.host}/scoreboard/ws/${clubId}`);
 
-        ws.onopen = () => {
-            console.log("WebSocket connected");
-        };
-
-        ws.onerror = (err) => {
-            console.error("WebSocket error:", err);
-        };
-
         ws.onmessage = (event) => {
-            console.log("Received data:", event.data);
             const data = JSON.parse(event.data);
 
-            document.getElementById("venue").textContent = data.venue_name || "Venue Name";
-            document.getElementById("race").textContent = data.race ? `Race ${data.race}` : "";
-            document.getElementById("message1").textContent = data.message1 || "";
-            document.getElementById("message2").textContent = data.message2 || "";
+            // Top 6 horse IDs with positions
+            const topSix = document.getElementById("topSix");
+            topSix.innerHTML = "";
+            if (data.runners) {
+                data.runners.slice(0, 6).forEach((runner, idx) => {
+                    const div = document.createElement("div");
+                    div.className = "horse";
+                    div.innerHTML = `<div class='horse-id'>${runner}</div><div class='position'>${idx + 1}</div>`;
+                    topSix.appendChild(div);
+                });
+            }
 
+            // Venue name and track condition
+            const venue = data.venue_name || "Venue Name";
+            const condition = data.track_condition || "Unknown";
+            document.getElementById("venueInfo").textContent = `${venue} - ${condition}`;
+
+            // Messages
+            document.getElementById("message1").textContent = `Margins: ${data.message1 || ""}`;
+            document.getElementById("message2").textContent = `Announcement: ${data.message2 || ""}`;
+
+            // Full runner list
             const resultsEl = document.getElementById("results");
             resultsEl.innerHTML = "";
             if (data.runners) {
-                data.runners.slice(0, 6).forEach((runner, idx) => {
+                data.runners.forEach((runner, idx) => {
                     const card = document.createElement("div");
                     card.className = "result-card";
                     card.innerHTML = `<strong>${idx + 1}. ${runner}</strong>`;
                     resultsEl.appendChild(card);
                 });
             }
-
-            document.getElementById("track").textContent =
-                `Track Condition: ${data.track_condition || "Unknown"} | Correct Weight: ${data.correct_weight || "No"}`;
         };
     </script>
 </body>
