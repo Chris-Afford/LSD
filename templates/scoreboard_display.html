@@ -10,40 +10,55 @@
             color: #fff;
             padding: 30px;
         }
-        .venue {
-            font-size: 2em;
+        .horse-ids {
+            display: flex;
+            justify-content: space-between;
             margin-bottom: 20px;
         }
-        .messages {
-            font-size: 1.2em;
+        .horse {
+            position: relative;
+            width: 15%;
+            text-align: center;
+            font-size: 5em;
+            font-weight: bold;
+        }
+        .horse .position {
+            position: absolute;
+            bottom: 5px;
+            left: 5px;
+            font-size: 0.3em;
+            color: #ff0;
+        }
+        .divider {
+            border-top: 2px solid #fff;
+            margin: 20px 0;
+        }
+        .center-info {
+            text-align: center;
+            font-size: 2em;
             margin-bottom: 15px;
         }
+        .messages {
+            text-align: center;
+            font-size: 1.5em;
+            margin-bottom: 20px;
+        }
         .results {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 20px;
+            text-align: center;
+            font-size: 1.2em;
         }
-        .result-card {
-            background-color: #222;
-            padding: 15px 25px;
-            border-radius: 10px;
-            min-width: 150px;
-        }
-        .track {
-            margin-top: 30px;
-            font-size: 1.1em;
-            color: #aaa;
-        }
+        .result-line { margin: 3px 0; }
     </style>
 </head>
 <body>
-    <div class="venue" id="venue">Venue Name</div>
+    <div class="horse-ids" id="horse-ids"></div>
+    <div class="divider"></div>
+    <div class="center-info" id="venue-track">Venue - Track</div>
     <div class="messages">
-        <div id="message1">Message Line 1</div>
-        <div id="message2">Message Line 2</div>
+        <div id="message1"></div>
+        <div id="message2"></div>
     </div>
     <div class="results" id="results"></div>
-    <div class="track" id="track">Track Condition: Good 4 | Correct Weight: No</div>
 
     <script>
         function getClubIdFromURL() {
@@ -72,23 +87,35 @@
             console.log("Received data:", event.data);
             const data = JSON.parse(event.data);
 
-            document.getElementById("venue").textContent = data.venue_name || "Venue Name";
-            document.getElementById("message1").textContent = data.message1 || "";
-            document.getElementById("message2").textContent = data.message2 || "";
+            const horseEl = document.getElementById("horse-ids");
+            horseEl.innerHTML = "";
+            if (data.runners) {
+                const ids = data.runners.slice(0, 6).map(r => r.trim().split(/\s+/)[0]);
+                ids.forEach((id, idx) => {
+                    const h = document.createElement("div");
+                    h.className = "horse";
+                    h.innerHTML = `<span class="number">${id}</span><span class="position">${idx + 1}</span>`;
+                    horseEl.appendChild(h);
+                });
+            }
+
+            document.getElementById("venue-track").textContent =
+                `${data.venue_name || ""} - ${data.track_condition || ""}`;
+            document.getElementById("message1").textContent =
+                data.message1 ? `Margins: ${data.message1}` : "";
+            document.getElementById("message2").textContent =
+                data.message2 ? `Announcement: ${data.message2}` : "";
 
             const resultsEl = document.getElementById("results");
             resultsEl.innerHTML = "";
             if (data.runners) {
-                data.runners.slice(0, 6).forEach((runner, idx) => {
-                    const card = document.createElement("div");
-                    card.className = "result-card";
-                    card.innerHTML = `<strong>${idx + 1}. ${runner}</strong>`;
-                    resultsEl.appendChild(card);
+                data.runners.forEach((runner) => {
+                    const line = document.createElement("div");
+                    line.className = "result-line";
+                    line.textContent = runner;
+                    resultsEl.appendChild(line);
                 });
             }
-
-            document.getElementById("track").textContent =
-                `Track Condition: ${data.track_condition || "Unknown"} | Correct Weight: ${data.correct_weight || "No"}`;
         };
     </script>
 </body>

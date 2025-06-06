@@ -1,5 +1,5 @@
 # models.py
-from typing import Optional
+from typing import Optional, List
 from sqlmodel import SQLModel, Field
 from pydantic import BaseModel
 from datetime import datetime
@@ -30,3 +30,7 @@ class Result(BaseModel):
     track_condition: str
     correct_weight: str
     raw_message: str
+    runners: Optional[List[str]] = None
+
+    class Config:
+        extra = "allow"
