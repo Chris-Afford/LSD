@@ -7,12 +7,15 @@ from routes import register_routes
 from scoreboard import router as scoreboard_router
 from scoreboard import register_scoreboard
 from starlette.middleware.sessions import SessionMiddleware
-
+from fastapi.staticfiles import StaticFiles
 
 
 app = FastAPI()
 templates = Jinja2Templates(directory="templates")
 
+
+
+app.mount("/static", StaticFiles(directory="static"), name="static")
 app.include_router(scoreboard_router, prefix="/scoreboard")
 app.add_middleware(SessionMiddleware, secret_key="supersecretkey")
 
