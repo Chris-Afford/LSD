@@ -4,29 +4,81 @@
     <meta charset="UTF-8">
     <title>Scoreboard Login</title>
     <style>
-        body { font-family: sans-serif; padding: 40px; }
-        .container { max-width: 400px; margin: auto; }
-        input, button { width: 100%; padding: 10px; margin-bottom: 10px; }
-        label { display: block; margin-bottom: 5px; }
+        body {
+            font-family: sans-serif;
+            padding: 40px;
+            background-color: #f5f5f5;
+        }
+
+        .container {
+            max-width: 400px;
+            margin: auto;
+            background: white;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+        }
+
+        input[type="text"],
+        input[type="password"],
+        button {
+            width: 100%;
+            padding: 10px;
+            margin-bottom: 15px;
+            box-sizing: border-box;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 5px;
+        }
+
+        .remember-row {
+            display: flex;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .remember-row input[type="checkbox"] {
+            margin-right: 8px;
+        }
+
+        .logo-footer {
+            margin-top: 40px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .logo-footer img {
+            max-width: 90%;
+            height: auto;
+            max-height: 20vh;
+        }
     </style>
 </head>
 <body>
-<div class="container">
-    <h2>Scoreboard Login</h2>
-    <form method="POST" action="/scoreboard/login">
-        <label for="username">Username:</label>
-        <input type="text" name="username" required>
+    <div class="container">
+        <h2>Scoreboard Login</h2>
+        <form method="POST" action="/scoreboard/login">
+            <label for="username">Username:</label>
+            <input type="text" name="username" required>
 
-        <label for="password">Password:</label>
-        <input type="password" name="password" required>
+            <label for="password">Password:</label>
+            <input type="password" name="password" required>
 
-        <label>
-            <input type="checkbox" name="remember"> Remember Me
-        </label>
+            <div class="remember-row">
+                <input type="checkbox" name="remember" id="remember">
+                <label for="remember">Remember Me</label>
+            </div>
 
-        <button type="submit">Login</button>
-    </form>
-    {% if error %}<p style="color:red">{{ error }}</p>{% endif %}
-</div>
+            <button type="submit">Login</button>
+        </form>
+        {% if error %}<p style="color:red">{{ error }}</p>{% endif %}
+    </div>
+
+    <div class="logo-footer">
+        <img src="logo.png" alt="Logo">
+    </div>
 </body>
 </html>
