@@ -42,7 +42,9 @@ def scoreboard_login(
         if remember:
             request.session["remember"] = True
 
-        return RedirectResponse(url=f"/scoreboard/view", status_code=302)
+      # Redirect to the scoreboard view page with the club_id in the query
+        return RedirectResponse(
+            url=f"/scoreboard/view?club_id={club.id}", status_code=302
 
 # Scoreboard view page
 @router.get("/scoreboard/view", response_class=HTMLResponse)
