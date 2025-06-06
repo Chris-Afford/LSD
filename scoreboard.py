@@ -83,3 +83,20 @@ async def broadcast_to_scoreboard(club_id: int, result_data: dict):
 # Register scoreboard routes
 def register_scoreboard(app):
     app.include_router(router)
+
+
+from starlette.websockets import WebSocketState
+
+# Dictionary to store WebSocket connections per club_id
+scoreboard_clients = {}
+
+async def broadcast_scoreboard(club_id: int, data: dict):
+    if club_id in scoreboard_clients:
+        disconnected = []
+        for ws in scoreboard_clients[club_id]:
+            if ws.application_state == WebSocketState.CONNECTED:
+                await ws.send_json(data)
+            else:
+                disconnected.append(ws)
+        for ws in disconnected:
+            scoreboard_clients[club_id].remove(ws)
