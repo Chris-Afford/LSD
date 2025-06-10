@@ -170,11 +170,13 @@
 
             const venue = data.venue_name || "Venue Name";
             const condition = data.track_condition || "Unknown";
-           const raceLabel = data.race_no ? `Race ${data.race_no} - ` : "";
-           document.getElementById("venueInfo").innerHTML =
-                `<span class="race-label">${data.race_no || ""}</span> - ` +
-                `<span class="venue-name">${data.venue_name || ""}</span> - ` +
-                `<span class="track-condition">${data.track_condition || ""}</span>`;
+            const raceLabel = data.race_no ? `Race ${data.race_no}` : "Race Unknown";
+
+            document.getElementById("venueInfo").innerHTML =
+                    `<span class="race-label">${raceLabel}</span> - ` +
+                    `<span class="venue-name">${venue}</span> - ` +
+                    `<span class="track-condition">${condition}</span>`;
+
 
 
             document.getElementById("message1").innerHTML = `<span style="color: white;">Margins:</span> <span style="color: yellow;">${data.message1 || ""}</span>`;
