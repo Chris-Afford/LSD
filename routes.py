@@ -49,7 +49,6 @@ def login(credentials: dict):
         return {"club_id": club.id, "venues": [v.name for v in venues]}
 
 
-#Parse Lynx Data
 def parse_raw_message(raw: str):
     race_no = None
     runners = []
@@ -58,26 +57,25 @@ def parse_raw_message(raw: str):
     if not raw:
         return race_no, runners, message1
 
- # Handle plain message-only packet
-if raw.endswith("\x05") and "Race:" not in raw:
-    # Strip \x05 and any surrounding whitespace
-    clean = raw.replace("\x05", "").strip()
+    # Handle plain message-only packet
+    if raw.endswith("\x05") and "Race:" not in raw:
+        # Strip trailing \x05 and leading/trailing whitespace
+        clean = raw.replace("\x05", "").strip()
 
-    # Match and remove timestamp like: [2025-06-11 05:03:08]
-    timestamp_match = re.match(r"^\[\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}\]\s*(.*)", clean)
-    if timestamp_match:
-        clean = timestamp_match.group(1)
+        # Remove timestamp pattern like [2025-06-11 05:03:08]
+        timestamp_match = re.match(r"^\[\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}\]\s*(.*)", clean)
+        if timestamp_match:
+            clean = timestamp_match.group(1)
 
-    message1 = clean
-    return None, [], message1
+        message1 = clean
+        return None, [], message1
 
-
-    # Handle normal race results
+    # Handle race data
     match = re.search(r"(Race:\s*\d+.*)", raw, re.DOTALL)
     if match:
         raw = match.group(1)
     else:
-        return None, [], None
+        return None, [], None  # No race section found
 
     clean = raw.replace("\r", "").replace("\n", " ")
 
@@ -92,6 +90,7 @@ if raw.endswith("\x05") and "Race:" not in raw:
         runners.append(entry)
 
     return race_no, runners, None
+
 
 # Record day pass
 def record_day_pass(club_id: int):
