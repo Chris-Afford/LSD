@@ -48,47 +48,29 @@ def login(credentials: dict):
         venues = session.exec(select(Venue).where(Venue.club_id == club.id)).all()
         return {"club_id": club.id, "venues": [v.name for v in venues]}
 
+
 # Parse raw FinishLynx strings into race number and runner info
 def parse_raw_message(raw: str):
     race_no = None
     runners = []
     if not raw:
         return race_no, runners
-    lines = raw.splitlines()
-    for line in lines:
-        line = line.strip()
-        if not line:
-            continue
-        if race_no is None:
-            m = re.search(r"Race\s+(\d+)", line)
-            if m:
-                race_no = m.group(1)
-                continue
-        if line.startswith("[") or line.lower().startswith("race"):
-            m = re.search(r"Race\s+(\d+)", line)
-            if m:
-                race_no = m.group(1)
-            continue
-        parts = re.split(r"\s{2,}", line)
-        if len(parts) < 3:
-            continue
-        time = ""
-        weight = ""
-        if re.match(r"\d+:\d+\.\d+", parts[-1]):
-            time = parts.pop()
-        if parts and re.match(r"-?\d+(?:\.\d+)?", parts[-1]):
-            weight = parts.pop()
-        if len(parts) < 3:
-            continue
-        horse_no = parts[1]
-        horse_name = parts[2]
-        jockey = " ".join(parts[3:]) if len(parts) > 3 else ""
-        entry = f"{horse_no} {horse_name} - {jockey}".strip()
-        if weight:
-            entry += f" {weight}"
-        if time:
-            entry += f" {time}"
+
+    # Match the race number
+    race_match = re.search(r"Race:\s*(\d+)", raw)
+    if race_match:
+        race_no = race_match.group(1)
+
+    # Match all 6 runners in the string
+    entries = re.findall(
+        r"Place:(\d+)\s+HorseID:(\d+)\s+Time:(\d{2}:\d{2}:\d{2})", raw
+    )
+
+    for place, horse_id, time in entries:
+        # You can change this string format to suit your display
+        entry = f"Place {place}: Horse {horse_id} - {time}"
         runners.append(entry)
+
     return race_no, runners
 
 # Record day pass
