@@ -36,22 +36,22 @@
             color: white;
         }
         .position {
-            font-size: clamp(4vw, 6vw, 7vh);
+            font-size: clamp(3vw, 5vw, 6vh);
             color: yellow;
         }
         .correct-weight {
-            font-size: 8vw;
+            font-size: 7vw;
             color: #4CAF50;
             margin-top: 0.5vh;
         }
         .winner-time {
-            font-size: 8vw;
+            font-size: 7vw;
             margin-top: 1vh;
             color: #fff;
         }
       
         .venue-info {
-            font-size: 8vw;
+            font-size: 6vw;
             margin-bottom: 2vh;
         }
 
@@ -67,7 +67,7 @@
                 color: yellow;
             }
         .messages {
-            font-size: 8vw;
+            font-size: 6vw;
             margin-bottom: 3vh;
         }
         @media (min-width: 768px) {
@@ -92,7 +92,17 @@
             .result-card {
                 font-size: 4vw;
             }
-        }
+            .logo-footer {
+                  text-align: center;
+                  margin-top: 1rem;
+            }
+
+            .logo-footer img {
+                  max-width: 200px;
+                  width: 60%;
+                  height: auto;
+            }
+
         @font-face {
             font-family: 'RaceDisplay';
             src: url('/static/OldSansBlack.ttf') format('truetype');
@@ -164,7 +174,7 @@
                 `<span class="track-condition">${data.track_condition || ""}</span>`;
 
 
-            document.getElementById("message1").textContent = `Margins: ${data.message1 || ""}`;
+            document.getElementById("message1").innerHTML = `<span style="color: white;">Margins:</span> <span style="color: yellow;">${data.message1 || ""}</span>`;
             document.getElementById("message2").textContent = `Announcement: ${data.message2 || ""}`;
 
             const resultsEl = document.getElementById("results");
@@ -196,7 +206,7 @@
 
     <!-- Logo at the bottom -->
     <div class="logo-footer">
-        <img src="/static/logo.png" alt="Logo">
-    </div>
+    <img src="/static/logo.png" alt="Logo">
+</div>
 </body>
 </html>
