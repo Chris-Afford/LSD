@@ -156,9 +156,9 @@
 
             const venue = data.venue_name || "Venue Name";
             const condition = data.track_condition || "Unknown";
-            const raceLabel = data.race_name ? `${data.race_name} - ` : "";
+            const raceLabel = data.race_no ? `${data.race_no} - ` : "";
            document.getElementById("venueInfo").innerHTML =
-                `<span class="race-label">${data.race_name || ""}</span> - ` +
+                `<span class="race-label">${data.race_no || ""}</span> - ` +
                 `<span class="venue-name">${data.venue_name || "Venue Name"}</span> - ` +
                 `<span class="track-condition">${data.track_condition || "Unknown"}</span>`;
 
