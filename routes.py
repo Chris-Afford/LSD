@@ -133,7 +133,7 @@ async def submit_result(club_id: int, result: Result):
     updated_result = {
         "race_no": race_num or previous_data.get("race_no", ""),
         "runners": runners if runners else previous_data.get("runners", []),
-        "correct_weight": "No",  # always reset unless overridden
+        "correct_weight": result_data.get("correct_weight", "No"),
         "track_condition": result_data.get("track_condition", previous_data.get("track_condition", "Good 4")),
         "venue_name": venue_name,
         "message1": message1 if message1 is not None else previous_data.get("message1", ""),
