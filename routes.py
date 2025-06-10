@@ -56,7 +56,7 @@ def parse_raw_message(raw: str):
     if not raw:
         return race_no, runners
 
-    # Remove line breaks for consistency
+    # Clean line breaks
     clean = raw.replace("\r", "").replace("\n", " ")
 
     # Extract race number
@@ -64,13 +64,14 @@ def parse_raw_message(raw: str):
     if race_match:
         race_no = race_match.group(1)
 
-    # Match all runner entries
+    # Match runner entries
     entries = re.findall(
         r"Place:(\d+)\s+HorseID:(\d+)\s+Time:(\d{2}:\d{2}:\d{2})", clean
     )
 
     for place, horse_id, time in entries:
-        entry = f"Place {place}: Horse {horse_id} - {time}"
+        # Convert to format: "horse_id - time"
+        entry = f"{horse_id} - {time}"
         runners.append(entry)
 
     return race_no, runners
