@@ -49,29 +49,34 @@ def login(credentials: dict):
         return {"club_id": club.id, "venues": [v.name for v in venues]}
 
 
-# Parse raw FinishLynx strings into race number and runner info
 def parse_raw_message(raw: str):
     race_no = None
     runners = []
     if not raw:
         return race_no, runners
 
+    # Clean up and normalize the string
+    raw = raw.replace("\r", "").replace("\n", "")
+
     # Match the race number
     race_match = re.search(r"Race:\s*(\d+)", raw)
     if race_match:
         race_no = race_match.group(1)
 
-    # Match all 6 runners in the string
+    # Add space before each new "Place" to help with splitting
+    raw = re.sub(r"(Time:\d{2}:\d{2}:\d{2})(?=Place:)", r"\1 ", raw)
+
+    # Now match each entry
     entries = re.findall(
         r"Place:(\d+)\s+HorseID:(\d+)\s+Time:(\d{2}:\d{2}:\d{2})", raw
     )
 
     for place, horse_id, time in entries:
-        # You can change this string format to suit your display
         entry = f"Place {place}: Horse {horse_id} - {time}"
         runners.append(entry)
 
     return race_no, runners
+
 
 # Record day pass
 def record_day_pass(club_id: int):
