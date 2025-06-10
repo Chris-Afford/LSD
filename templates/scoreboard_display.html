@@ -144,7 +144,9 @@
 
             const venue = data.venue_name || "Venue Name";
             const condition = data.track_condition || "Unknown";
-            document.getElementById("venueInfo").textContent = `${venue} - ${condition}`;
+           const raceLabel = data.race_name ? `${data.race_name} - ` : "";
+            document.getElementById("venueInfo").innerHTML = `${raceLabel}${venue} - <span class="track-condition">${condition}</span>`;
+
 
             document.getElementById("message1").textContent = `Margins: ${data.message1 || ""}`;
             document.getElementById("message2").textContent = `Announcement: ${data.message2 || ""}`;
