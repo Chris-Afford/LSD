@@ -57,6 +57,18 @@
             font-size: 4vw;
             margin-bottom: 2vh;
         }
+
+            .race-label {
+                color: yellow;
+            }
+            
+            .venue-name {
+                color: white;
+            }
+
+            .track-condition {
+                color: yellow;
+            }
         .messages {
             font-size: 6vw;
             margin-bottom: 3vh;
@@ -144,8 +156,11 @@
 
             const venue = data.venue_name || "Venue Name";
             const condition = data.track_condition || "Unknown";
-           const raceLabel = data.race_name ? `${data.race_name} - ` : "";
-            document.getElementById("venueInfo").innerHTML = `${raceLabel}${venue} - <span class="track-condition">${condition}</span>`;
+            const raceLabel = data.race_name ? `${data.race_name} - ` : "";
+           document.getElementById("venueInfo").innerHTML =
+                `<span class="race-label">${data.race_name || ""}</span> - ` +
+                `<span class="venue-name">${data.venue_name || "Venue Name"}</span> - ` +
+                `<span class="track-condition">${data.track_condition || "Unknown"}</span>`;
 
 
             document.getElementById("message1").textContent = `Margins: ${data.message1 || ""}`;
