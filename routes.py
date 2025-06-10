@@ -57,39 +57,43 @@ def parse_raw_message(raw: str):
     if not raw:
         return race_no, runners, message1
 
-    # Handle plain message-only packet
+    # Message-only packet (Margins sent manually)
     if raw.endswith("\x05") and "Race:" not in raw:
-        # Strip trailing \x05 and leading/trailing whitespace
         clean = raw.replace("\x05", "").strip()
-
-        # Remove timestamp pattern like [2025-06-11 05:03:08]
-        timestamp_match = re.match(r"^\[\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}\]\s*(.*)", clean)
-        if timestamp_match:
-            clean = timestamp_match.group(1)
-
+        match = re.match(r"^\[\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}\]\s*(.*)", clean)
+        if match:
+            clean = match.group(1)
         message1 = clean
         return None, [], message1
 
-    # Handle race data
+    # Race results parsing
     match = re.search(r"(Race:\s*\d+.*)", raw, re.DOTALL)
     if match:
         raw = match.group(1)
     else:
-        return None, [], None  # No race section found
+        return None, [], None
 
     clean = raw.replace("\r", "").replace("\n", " ")
 
+    # Extract race number
     race_match = re.search(r"Race:\s*(\d+)", clean)
     if race_match:
         race_no = race_match.group(1)
 
+    # Match full entries with valid time (like 1:18.69)
     entries = re.findall(r"Place:(\d+)\s+HorseID:(\d+)\s+Time:(\d+:\d+\.\d+)", clean)
 
-    for place, horse_id, time in entries:
-        entry = f"{horse_id} - {time}"
-        runners.append(entry)
+    if entries:
+        for place, horse_id, time in entries:
+            runners.append(f"{horse_id} - {time}")
+    else:
+        # Detect "blank board" with no times and clear runners + message
+        if re.search(r"Place:\s+HorseID:\d+\s+Time:\s*", clean):
+            runners = []
+            message1 = ""  # Clear Margins
 
-    return race_no, runners, None
+    return race_no, runners, message1
+
 
 
 # Record day pass
