@@ -53,24 +53,31 @@ def login(credentials: dict):
 def parse_raw_message(raw: str):
     race_no = None
     runners = []
+
     if not raw:
         return race_no, runners
+
+    # Remove timestamp or other leading text before "Race:"
+    match = re.search(r"(Race:\s*\d+.*)", raw, re.DOTALL)
+    if match:
+        raw = match.group(1)
+    else:
+        return None, []  # No race section found
 
     # Clean line breaks
     clean = raw.replace("\r", "").replace("\n", " ")
 
-    # Extract race number
+    # Match race number
     race_match = re.search(r"Race:\s*(\d+)", clean)
     if race_match:
         race_no = race_match.group(1)
 
-    # Match runner entries
+    # Match all runner entries
     entries = re.findall(
-        r"Place:(\d+)\s+HorseID:(\d+)\s+Time:(\d{2}:\d{2}:\d{2})", clean
+        r"Place:(\d+)\s+HorseID:(\d+)\s+Time:(\d+:\d+\.\d+)", clean
     )
 
     for place, horse_id, time in entries:
-        # Convert to format: "horse_id - time"
         entry = f"{horse_id} - {time}"
         runners.append(entry)
 
