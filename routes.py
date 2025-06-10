@@ -58,15 +58,17 @@ def parse_raw_message(raw: str):
     if not raw:
         return race_no, runners, message1
 
-    # Handle plain message-only packet
-    if raw.endswith("\x05") and "Race:" not in raw:
-        # Strip control characters
-        clean = raw.replace("\x02", "").replace("\x05", "").strip()
+  # Handle plain message-only packet
+if raw.endswith("\x05") and "Race:" not in raw:
+    # Remove control characters
+    clean = raw.replace("\x02", "").replace("\x05", "").strip()
 
-        # Optional: remove leading timestamps like [12:30:01] if present
-        match = re.search(r"(?:\[\d{2}:\d{2}:\d{2}\]\s*)?(.*)", clean)
-        message1 = match.group(1).strip() if match else clean
-        return None, [], message1
+    # Strip timestamp pattern like [YYYY-MM-DD HH:MM:SS]
+    clean = re.sub(r"^\[\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}\]\s*", "", clean)
+
+    message1 = clean
+    return None, [], message1
+
 
     # Handle normal race results
     match = re.search(r"(Race:\s*\d+.*)", raw, re.DOTALL)
