@@ -58,13 +58,15 @@ def parse_raw_message(raw: str):
     if not raw:
         return race_no, runners, message1
 
-  # Handle plain message-only packet
+ # Handle plain message-only packet
 if raw.endswith("\x05") and "Race:" not in raw:
-    # Remove control characters
-    clean = raw.replace("\x02", "").replace("\x05", "").strip()
+    # Strip \x05 and any surrounding whitespace
+    clean = raw.replace("\x05", "").strip()
 
-    # Strip timestamp pattern like [YYYY-MM-DD HH:MM:SS]
-    clean = re.sub(r"^\[\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}\]\s*", "", clean)
+    # Match and remove timestamp like: [2025-06-11 05:03:08]
+    timestamp_match = re.match(r"^\[\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}\]\s*(.*)", clean)
+    if timestamp_match:
+        clean = timestamp_match.group(1)
 
     message1 = clean
     return None, [], message1
