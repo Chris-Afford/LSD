@@ -159,8 +159,8 @@
             const raceLabel = data.race_no ? `${data.race_no} - ` : "";
            document.getElementById("venueInfo").innerHTML =
                 `<span class="race-label">${data.race_no || ""}</span> - ` +
-                `<span class="venue-name">${data.venue_name || "Venue Name"}</span> - ` +
-                `<span class="track-condition">${data.track_condition || "Unknown"}</span>`;
+                `<span class="venue-name">${data.venue_name || ""}</span> - ` +
+                `<span class="track-condition">${data.track_condition || ""}</span>`;
 
 
             document.getElementById("message1").textContent = `Margins: ${data.message1 || ""}`;
