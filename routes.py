@@ -111,7 +111,11 @@ def record_day_pass(club_id: int):
 @router.post("/submit/{club_id}")
 async def submit_result(club_id: int, result: Result):
     result_data = result.dict()
+    print(f"Incoming data for club {club_id}: {result_data}")  # <--- this logs to Render
+
     race_num, runners, message1 = parse_raw_message(result_data.get("raw_message", ""))
+    ...
+
 
     filename = f"results_club_{club_id}.json"
 
