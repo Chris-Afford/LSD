@@ -58,36 +58,36 @@ def parse_raw_message(raw: str):
     if not raw:
         return race_no, runners, message1
 
-    # Check for plain message ending with \x05
+    # Handle plain message-only packet
     if raw.endswith("\x05") and "Race:" not in raw:
-        message1 = raw.rstrip("\x05").strip()
+        # Strip control characters
+        clean = raw.replace("\x02", "").replace("\x05", "").strip()
+
+        # Optional: remove leading timestamps like [12:30:01] if present
+        match = re.search(r"(?:\[\d{2}:\d{2}:\d{2}\]\s*)?(.*)", clean)
+        message1 = match.group(1).strip() if match else clean
         return None, [], message1
 
-    # Remove timestamp or other leading text before "Race:"
+    # Handle normal race results
     match = re.search(r"(Race:\s*\d+.*)", raw, re.DOTALL)
     if match:
         raw = match.group(1)
     else:
-        return None, [], None  # No race section found
+        return None, [], None
 
     clean = raw.replace("\r", "").replace("\n", " ")
 
-    # Match race number
     race_match = re.search(r"Race:\s*(\d+)", clean)
     if race_match:
         race_no = race_match.group(1)
 
-    # Match all runner entries
-    entries = re.findall(
-        r"Place:(\d+)\s+HorseID:(\d+)\s+Time:(\d+:\d+\.\d+)", clean
-    )
+    entries = re.findall(r"Place:(\d+)\s+HorseID:(\d+)\s+Time:(\d+:\d+\.\d+)", clean)
 
     for place, horse_id, time in entries:
         entry = f"{horse_id} - {time}"
         runners.append(entry)
 
     return race_no, runners, None
-
 
 # Record day pass
 def record_day_pass(club_id: int):
