@@ -53,18 +53,23 @@ def login(credentials: dict):
 def parse_raw_message(raw: str):
     race_no = None
     runners = []
+    message1 = None
 
     if not raw:
-        return race_no, runners
+        return race_no, runners, message1
+
+    # Check for plain message ending with \x05
+    if raw.endswith("\x05") and "Race:" not in raw:
+        message1 = raw.rstrip("\x05").strip()
+        return None, [], message1
 
     # Remove timestamp or other leading text before "Race:"
     match = re.search(r"(Race:\s*\d+.*)", raw, re.DOTALL)
     if match:
         raw = match.group(1)
     else:
-        return None, []  # No race section found
+        return None, [], None  # No race section found
 
-    # Clean line breaks
     clean = raw.replace("\r", "").replace("\n", " ")
 
     # Match race number
@@ -81,7 +86,7 @@ def parse_raw_message(raw: str):
         entry = f"{horse_id} - {time}"
         runners.append(entry)
 
-    return race_no, runners
+    return race_no, runners, None
 
 
 # Record day pass
@@ -100,31 +105,35 @@ def record_day_pass(club_id: int):
             session.add(DayPass(club_id=club_id, club_name=club_name, timestamp=now))
             session.commit()
 
-# Submit result
 @router.post("/submit/{club_id}")
 async def submit_result(club_id: int, result: Result):
     result_data = result.dict()
-    race_num, runners = parse_raw_message(result_data.get("raw_message", ""))
-
-    # Ensure expected scoreboard fields exist
-    result_data["race_no"] = race_num or result_data.get("race_no", "")
-    result_data["runners"] = runners or result_data.get("runners", [])
-    result_data["correct_weight"] = result_data.get("correct_weight", "No")
-    result_data["track_condition"] = result_data.get("track_condition", "Unknown")
-    result_data["venue_name"] = result_data.get("venue_name", "Venue Name")
-    result_data["message1"] = result_data.get("message1", "")
-    result_data["message2"] = result_data.get("message2", "")
+    race_num, runners, message1 = parse_raw_message(result_data.get("raw_message", ""))
 
     filename = f"results_club_{club_id}.json"
 
-    if not os.path.exists(filename):
-        with open(filename, "w") as f:
-            json.dump({}, f)
+    # Load existing data
+    if os.path.exists(filename):
+        with open(filename, "r") as f:
+            existing_data = json.load(f)
+    else:
+        existing_data = {}
 
-    with open(filename, "r") as f:
-        existing_data = json.load(f)
+    venue_name = result_data.get("venue_name", "Venue Name")
+    previous_data = existing_data.get(venue_name, {})
 
-    existing_data[result_data["venue_name"]] = result_data
+    # Build updated record using existing values where needed
+    updated_result = {
+        "race_no": race_num or previous_data.get("race_no", ""),
+        "runners": runners if runners else previous_data.get("runners", []),
+        "correct_weight": "No",  # always reset unless overridden
+        "track_condition": result_data.get("track_condition", previous_data.get("track_condition", "Good 4")),
+        "venue_name": venue_name,
+        "message1": message1 if message1 is not None else previous_data.get("message1", ""),
+        "message2": result_data.get("message2", previous_data.get("message2", ""))
+    }
+
+    existing_data[venue_name] = updated_result
 
     with open(filename, "w") as f:
         json.dump(existing_data, f, indent=2)
@@ -134,13 +143,14 @@ async def submit_result(club_id: int, result: Result):
     if club_id in websocket_connections:
         for connection in websocket_connections[club_id]:
             try:
-                await connection.send_json(result_data)
+                await connection.send_json(updated_result)
             except:
                 continue
 
-    await broadcast_scoreboard(club_id, result_data)
+    await broadcast_scoreboard(club_id, updated_result)
 
     return {"status": "ok"}
+
 
     # Also broadcast to connected scoreboard displays
     await broadcast_scoreboard(club_id, result_data)
