@@ -47,6 +47,8 @@ def login(credentials: dict):
 
         venues = session.exec(select(Venue).where(Venue.club_id == club.id)).all()
         return {"club_id": club.id, "venues": [v.name for v in venues]}
+
+
 #Parse Lynx Data
 def parse_raw_message(raw: str):
     race_no = None
@@ -54,26 +56,22 @@ def parse_raw_message(raw: str):
     if not raw:
         return race_no, runners
 
-    # Normalize: remove newlines, ensure space before every Place:
-    clean = raw.replace("\r", "").replace("\n", "")
-    clean = re.sub(r"(?<!^)Place:", r"||Place:", clean)  # Add || between entries
+    # Remove line breaks for consistency
+    clean = raw.replace("\r", "").replace("\n", " ")
 
-    # Match race number
+    # Extract race number
     race_match = re.search(r"Race:\s*(\d+)", clean)
     if race_match:
         race_no = race_match.group(1)
 
-    # Extract runner data
-    segments = clean.split("||")[1:]  # skip the race number part
+    # Match all runner entries
+    entries = re.findall(
+        r"Place:(\d+)\s+HorseID:(\d+)\s+Time:(\d{2}:\d{2}:\d{2})", clean
+    )
 
-    for segment in segments:
-        m = re.search(
-            r"Place:(\d+)\s+HorseID:(\d+)\s+Time:(\d{2}:\d{2}:\d{2})", segment
-        )
-        if m:
-            place, horse_id, time = m.groups()
-            entry = f"Place {place}: Horse {horse_id} - {time}"
-            runners.append(entry)
+    for place, horse_id, time in entries:
+        entry = f"Place {place}: Horse {horse_id} - {time}"
+        runners.append(entry)
 
     return race_no, runners
 
