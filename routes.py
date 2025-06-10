@@ -57,13 +57,13 @@ def parse_raw_message(raw: str):
     if not raw:
         return race_no, runners, message1
 
-    # Message-only packet (Margins sent manually)
-    if raw.endswith("\x05") and "Race:" not in raw:
-        clean = raw.replace("\x05", "").strip()
-        match = re.match(r"^\[\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}\]\s*(.*)", clean)
-        if match:
-            clean = match.group(1)
-        message1 = clean
+    # Normalize control characters and timestamps
+    raw = raw.replace("\x02", "").replace("\x05", "").strip()
+    raw = re.sub(r"^\[\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}\]\s*", "", raw)
+
+    # Message-only packet
+    if not "Race:" in raw and raw.endswith("123"):  # basic check
+        message1 = raw.strip()
         return None, [], message1
 
     # Race results parsing
