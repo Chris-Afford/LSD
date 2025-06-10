@@ -57,43 +57,39 @@ def parse_raw_message(raw: str):
     if not raw:
         return race_no, runners, message1
 
-    # Normalize control characters and timestamps
-    raw = raw.replace("\x02", "").replace("\x05", "").strip()
-    raw = re.sub(r"^\[\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}\]\s*", "", raw)
+    # Handle plain message-only packet
+    if raw.endswith("\x05") and "Race:" not in raw:
+        # Strip trailing \x05 and leading/trailing whitespace
+        clean = raw.replace("\x05", "").strip()
 
-    # Message-only packet
-    if not "Race:" in raw and raw.endswith("123"):  # basic check
-        message1 = raw.strip()
+        # Remove timestamp pattern like [2025-06-11 05:03:08]
+        timestamp_match = re.match(r"^\[\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}\]\s*(.*)", clean)
+        if timestamp_match:
+            clean = timestamp_match.group(1)
+
+        message1 = clean
         return None, [], message1
 
-    # Race results parsing
+    # Handle race data
     match = re.search(r"(Race:\s*\d+.*)", raw, re.DOTALL)
     if match:
         raw = match.group(1)
     else:
-        return None, [], None
+        return None, [], None  # No race section found
 
     clean = raw.replace("\r", "").replace("\n", " ")
 
-    # Extract race number
     race_match = re.search(r"Race:\s*(\d+)", clean)
     if race_match:
         race_no = race_match.group(1)
 
-    # Match full entries with valid time (like 1:18.69)
     entries = re.findall(r"Place:(\d+)\s+HorseID:(\d+)\s+Time:(\d+:\d+\.\d+)", clean)
 
-    if entries:
-        for place, horse_id, time in entries:
-            runners.append(f"{horse_id} - {time}")
-    else:
-        # Detect "blank board" with no times and clear runners + message
-        if re.search(r"Place:\s+HorseID:\d+\s+Time:\s*", clean):
-            runners = []
-            message1 = ""  # Clear Margins
+    for place, horse_id, time in entries:
+        entry = f"{horse_id} - {time}"
+        runners.append(entry)
 
-    return race_no, runners, message1
-
+    return race_no, runners, None
 
 
 # Record day pass
