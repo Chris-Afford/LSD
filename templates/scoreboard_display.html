@@ -5,121 +5,116 @@
     <title>Live Scoreboard</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <style>
-        body {
-            font-family: sans-serif;
-            background-color: #111;
-            color: #fff;
-            padding: 1vw;
-            text-align: center;
-        }
-       .top-six {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
-            gap: 1.5vh 2vw;
-            justify-items: center;
-            margin-bottom: 2vh;
-        }
+    @font-face {
+        font-family: 'RaceDisplay';
+        src: url('/static/OldSansBlack.ttf') format('truetype');
+    }
 
-        }
-        .horse {
-            margin: 1vh 2vw;
-            text-align: center;
-            flex: 1 1 10vw;
-        }
+    body {
+        font-family: 'RaceDisplay', sans-serif;
+        background-color: #111;
+        color: #fff;
+        padding: 1vw;
+        text-align: center;
+    }
+
+    .top-six {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
+        gap: 1.5vh 2vw;
+        justify-items: center;
+        margin-bottom: 2vh;
+    }
+
+    .horse {
+        margin: 1vh 2vw;
+        text-align: center;
+        flex: 1 1 10vw;
+    }
+
+    .horse-id {
+        font-size: clamp(18vw, 24vw, 26vh);
+    }
+
+    .horse.correct .horse-id {
+        color: lime;
+    }
+
+    .horse:not(.correct) .horse-id {
+        color: white;
+    }
+
+    .position {
+        font-size: clamp(3vw, 5vw, 6vh);
+        color: yellow;
+    }
+
+    .correct-weight {
+        font-size: 8vw;
+        color: #4CAF50;
+        margin-top: 0.5vh;
+    }
+
+    .winner-time {
+        font-size: 7vw;
+        margin-top: 1vh;
+        color: #fff;
+    }
+
+    .venue-info {
+        font-size: 6vw;
+        margin-bottom: 2vh;
+    }
+
+    .race-label {
+        color: yellow;
+    }
+
+    .venue-name {
+        color: white;
+    }
+
+    .track-condition {
+        color: yellow;
+    }
+
+    .messages {
+        font-size: 6vw;
+        margin-bottom: 3vh;
+    }
+
+    .logo-footer {
+        text-align: center;
+        margin-top: 1rem;
+    }
+
+    .logo-footer img {
+        width: 100%;
+        max-width: 90vw;
+        height: auto;
+    }
+
+    @media (min-width: 768px) {
         .horse-id {
-            font-size: clamp(18vw, 24vw, 26vh);
-        }
-        .horse.correct .horse-id {
-            color: lime;
-        }
-        .horse:not(.correct) .horse-id {
-            color: white;
-        }
-        .position {
-            font-size: clamp(3vw, 5vw, 6vh);
-            color: yellow;
-        }
-        .correct-weight {
-            font-size: 8vw;
-            color: #4CAF50;
-            margin-top: 0.5vh;
-        }
-        .winner-time {
-            font-size: 7vw;
-            margin-top: 1vh;
-            color: #fff;
-        }
-      
-        .venue-info {
-            font-size: 6vw;
-            margin-bottom: 2vh;
+            font-size: clamp(8vw, 12vw, 16vh);
         }
 
-            .race-label {
-                color: yellow;
-            }
-            
-            .venue-name {
-                color: white;
-            }
-
-            .track-condition {
-                color: yellow;
-            }
-        .messages {
-            font-size: 6vw;
-            margin-bottom: 3vh;
+        .position,
+        .correct-weight,
+        .winner-time,
+        .venue-info,
+        .messages,
+        .result-card {
+            font-size: 4vw;
         }
-        @media (min-width: 768px) {
-            .horse-id {
-                font-size: clamp(8vw, 12vw, 16vh);
-            }
-            .position {
-                font-size: clamp(3vw, 5vw, 7vh);
-            }
-            .correct-weight {
-                font-size: 4vw;
-            }
-            .winner-time {
-                font-size: 4vw;
-            }
-            .venue-info {
-                font-size: 4vw;
-            }
-            .messages {
-                font-size: 4vw;
-            }
-            .result-card {
-                font-size: 4vw;
-            }
-            .logo-footer {
-                  text-align: center;
-                  margin-top: 1rem;
-            }
 
-            .logo-footer img {
-                  max-width: 200px;
-                  width: 60%;
-                  height: auto;
-            }
-        @media (max-width: 767px) {
-            .logo {
-                    width: 100%;
-                    max-width: 90vw;
-                    height: auto;
-            }
+        .logo-footer img {
+            max-width: 200px;
+            width: 60%;
+        }
+    }
+</style>
 
-
-
-        @font-face {
-            font-family: 'RaceDisplay';
-            src: url('/static/OldSansBlack.ttf') format('truetype');
-            }
-
-        body {
-            font-family: 'RaceDisplay', sans-serif;
-            }
-    </style>
 </head>
 <body>
     <div class="top-six" id="topSix"></div>
