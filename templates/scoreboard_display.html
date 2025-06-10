@@ -12,11 +12,14 @@
             padding: 2vw;
             text-align: center;
         }
-        .top-six {
-            display: flex;
-            justify-content: center;
-            flex-wrap: wrap;
+       .top-six {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
+            gap: 1.5vh 2vw;
+            justify-items: center;
             margin-bottom: 2vh;
+        }
+
         }
         .horse {
             margin: 1vh 2vw;
@@ -94,6 +97,14 @@
                 font-size: 1.8vw;
             }
         }
+        @font-face {
+            font-family: 'RaceDisplay';
+            src: url('/static/fonts/RaceDisplay.ttf') format('truetype');
+            }
+
+        body {
+            font-family: 'RaceDisplay', sans-serif;
+            }
     </style>
 </head>
 <body>
