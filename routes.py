@@ -59,23 +59,22 @@ def parse_raw_message(raw: str):
 
     # Handle plain message-only packet
     if raw.endswith("\x05") and "Race:" not in raw:
-        # Strip trailing \x05 and leading/trailing whitespace
         clean = raw.replace("\x05", "").strip()
-
-        # Remove timestamp pattern like [2025-06-11 05:03:08]
         timestamp_match = re.match(r"^\[\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}\]\s*(.*)", clean)
         if timestamp_match:
             clean = timestamp_match.group(1)
-
         message1 = clean
         return None, [], message1
 
-    # Handle race data
+    # Strip header timestamp if present
+    raw = raw.strip()
+    raw = re.sub(r"^\[\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}\]\s*", "", raw)
+
     match = re.search(r"(Race:\s*\d+.*)", raw, re.DOTALL)
     if match:
         raw = match.group(1)
     else:
-        return None, [], None  # No race section found
+        return None, [], None
 
     clean = raw.replace("\r", "").replace("\n", " ")
 
@@ -83,11 +82,12 @@ def parse_raw_message(raw: str):
     if race_match:
         race_no = race_match.group(1)
 
-    entries = re.findall(r"Place:(\d+)\s+HorseID:(\d+)\s+Time:(\d+:\d+\.\d+)", clean)
+    # Match partial runner entries (some may be malformed)
+    entries = re.findall(r"Place:(\d*)\s+HorseID:(\d+)\s+Time:([0-9:.]*)", clean)
 
     for place, horse_id, time in entries:
-        entry = f"{horse_id} - {time}"
-        runners.append(entry)
+        time_display = time.strip() if time.strip() else "—"
+        runners.append(f"{horse_id} - {time_display}")
 
     return race_no, runners, None
 
