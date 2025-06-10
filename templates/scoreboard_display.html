@@ -27,7 +27,7 @@
             flex: 1 1 10vw;
         }
         .horse-id {
-            font-size: clamp(10vw, 16vw, 18vh);
+            font-size: clamp(12vw, 18vw, 20vh);
         }
         .horse.correct .horse-id {
             color: lime;
@@ -141,7 +141,11 @@
                     const idOnly = runner.split(" ")[0];
                     const div = document.createElement("div");
                     div.className = "horse" + (data.correct_weight?.toLowerCase() === "yes" ? " correct" : "");
-                    div.innerHTML = `<div class='horse-id'>${idOnly}</div><div class='position'>${idx + 1}</div>`;
+                    div.innerHTML = `
+                                  <div class='position'>${idx + 1}</div>
+                                  <div class='horse-id'>${idOnly}</div>
+                `;
+
                     topSix.appendChild(div);
                 });
 
