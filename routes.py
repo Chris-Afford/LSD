@@ -98,10 +98,16 @@ def record_day_pass(club_id: int):
 async def submit_result(club_id: int, result: Result):
     result_data = result.dict()
     race_num, runners = parse_raw_message(result_data.get("raw_message", ""))
-    if race_num and "race" not in result_data:
-        result_data["race"] = race_num
-    if not result_data.get("runners") and runners:
-        result_data["runners"] = runners
+
+    # Ensure expected scoreboard fields exist
+    result_data["race_no"] = race_num or result_data.get("race_no", "")
+    result_data["runners"] = runners or result_data.get("runners", [])
+    result_data["correct_weight"] = result_data.get("correct_weight", "No")
+    result_data["track_condition"] = result_data.get("track_condition", "Unknown")
+    result_data["venue_name"] = result_data.get("venue_name", "Venue Name")
+    result_data["message1"] = result_data.get("message1", "")
+    result_data["message2"] = result_data.get("message2", "")
+
     filename = f"results_club_{club_id}.json"
 
     if not os.path.exists(filename):
@@ -124,6 +130,10 @@ async def submit_result(club_id: int, result: Result):
                 await connection.send_json(result_data)
             except:
                 continue
+
+    await broadcast_scoreboard(club_id, result_data)
+
+    return {"status": "ok"}
 
     # Also broadcast to connected scoreboard displays
     await broadcast_scoreboard(club_id, result_data)
