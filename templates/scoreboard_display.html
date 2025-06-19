@@ -1,4 +1,4 @@
-    <!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
@@ -113,21 +113,34 @@
             width: 60%;
         }
     }
+
+    #reconnectBanner {
+        position: fixed;
+        top: 0;
+        width: 100%;
+        background: darkred;
+        color: white;
+        font-size: 5vw;
+        padding: 1vh;
+        text-align: center;
+        z-index: 1000;
+        display: none;
+    }
 </style>
 
 </head>
 <body>
+    <div id="reconnectBanner">Reconnecting...</div>
+
     <div class="top-six" id="topSix"></div>
     <div class="correct-weight" id="correctWeight"></div>
     <div class="winner-time" id="winnerTime"></div>
-    
 
     <div class="venue-info" id="venueInfo">Venue Name - Track Condition</div>
     <div class="messages">
         <div id="message1">Margins:</div>
         <div id="message2">Announcement:</div>
     </div>
-
 
     <script>
         function getClubIdFromURL() {
@@ -142,7 +155,6 @@
             throw new Error("Missing club_id in URL");
         }
 
-        /** Update the scoreboard display with the given data */
         function updateScoreboard(data) {
             const topSix = document.getElementById("topSix");
             topSix.innerHTML = "";
@@ -152,10 +164,9 @@
                     const div = document.createElement("div");
                     div.className = "horse" + (data.correct_weight?.toLowerCase() === "yes" ? " correct" : "");
                     div.innerHTML = `
-                                  <div class='position'>${idx + 1}</div>
-                                  <div class='horse-id'>${idOnly}</div>
-                `;
-
+                        <div class='position'>${idx + 1}</div>
+                        <div class='horse-id'>${idOnly}</div>
+                    `;
                     topSix.appendChild(div);
                 });
 
@@ -173,45 +184,68 @@
             const raceLabel = data.race_no ? `Race ${data.race_no}` : "Race Unknown";
 
             document.getElementById("venueInfo").innerHTML =
-                    `<span class="race-label">${raceLabel}</span> - ` +
-                    `<span class="venue-name">${venue}</span> - ` +
-                    `<span class="track-condition">${condition}</span>`;
+                `<span class="race-label">${raceLabel}</span> - ` +
+                `<span class="venue-name">${venue}</span> - ` +
+                `<span class="track-condition">${condition}</span>`;
 
-
-
-            document.getElementById("message1").innerHTML = `<span style="color: white;">Margins:</span> <span style="color: yellow;">${data.message1 || ""}</span>`;
+            document.getElementById("message1").innerHTML =
+                `<span style="color: white;">Margins:</span> <span style="color: yellow;">${data.message1 || ""}</span>`;
             document.getElementById("message2").textContent = `Announcement: ${data.message2 || ""}`;
-
-            const resultsEl = document.getElementById("results");
-            resultsEl.innerHTML = "";
-            if (data.runners) {
-                data.runners.forEach((runner, idx) => {
-                    const idAndName = runner.replace(/\d+:\d+\.\d+/, '').trim();
-                    const card = document.createElement("div");
-                    card.className = "result-card";
-                    card.innerHTML = `<strong>${idx + 1}. ${idAndName}</strong>`;
-                    resultsEl.appendChild(card);
-                });
-            }
         }
 
-        const ws = new WebSocket(`wss://${location.host}/scoreboard/ws/${clubId}`);
-
-        ws.onmessage = (event) => {
-            const data = JSON.parse(event.data);
-            updateScoreboard(data);
-        };
-
-        // Render any existing result passed from the server on page load
         const initialData = {{ result | tojson | safe }};
         if (Object.keys(initialData).length > 0) {
             updateScoreboard(initialData);
         }
+
+        let socket;
+
+        function showReconnectBanner(show) {
+            document.getElementById("reconnectBanner").style.display = show ? "block" : "none";
+        }
+
+        function connectWebSocket() {
+            showReconnectBanner(false);
+            socket = new WebSocket(`wss://${location.host}/scoreboard/ws/${clubId}`);
+
+            socket.onopen = () => {
+                showReconnectBanner(false);
+            };
+
+            socket.onmessage = (event) => {
+                const data = JSON.parse(event.data);
+                updateScoreboard(data);
+            };
+
+            socket.onclose = () => {
+                showReconnectBanner(true);
+                setTimeout(connectWebSocket, 2000);
+            };
+
+            socket.onerror = () => {
+                showReconnectBanner(true);
+                socket.close();
+            };
+        }
+
+        setInterval(() => {
+            if (!socket || socket.readyState !== WebSocket.OPEN) {
+                connectWebSocket();
+            } else {
+                try {
+                    socket.send("ping");
+                } catch (e) {
+                    connectWebSocket();
+                }
+            }
+        }, 5000);
+
+        connectWebSocket();
     </script>
 
-    <!-- Logo at the bottom -->
     <div class="logo-footer">
-    <img src="/static/logo.png" alt="Logo">
-</div>
+        <img src="/static/logo.png" alt="Logo">
+    </div>
 </body>
 </html>
+s
