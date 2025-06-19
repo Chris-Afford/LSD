@@ -172,7 +172,7 @@
 
                 const winner = data.runners[0];
                 const parts = winner.split(" ");
-                const time = parts.find(p => p.match(/\d+:\d+\.\d+/));
+                const time = parts.find(p => p.match(/\\d+:\\d+\\.\\d+/));
                 document.getElementById("winnerTime").textContent = time ? `Time: ${time}` : "";
             }
 
@@ -219,23 +219,25 @@
 
             socket.onclose = () => {
                 showReconnectBanner(true);
-                setTimeout(connectWebSocket, 2000);
+                setTimeout(() => location.reload(), 1500);  // 🔁 full reload
             };
 
             socket.onerror = () => {
                 showReconnectBanner(true);
-                socket.close();
+                setTimeout(() => location.reload(), 1500);  // 🔁 full reload
             };
         }
 
         setInterval(() => {
             if (!socket || socket.readyState !== WebSocket.OPEN) {
-                connectWebSocket();
+                console.warn("WebSocket closed. Reloading...");
+                location.reload();  // 🔁 reload if no connection
             } else {
                 try {
                     socket.send("ping");
                 } catch (e) {
-                    connectWebSocket();
+                    console.error("Ping failed. Reloading...");
+                    location.reload();  // 🔁 reload if ping fails
                 }
             }
         }, 5000);
@@ -248,4 +250,3 @@
     </div>
 </body>
 </html>
-s
