@@ -36,11 +36,19 @@
         font-size: clamp(18vw, 24vw, 26vh);
     }
 
+    .horse.protest .horse-id {
+        color: red;
+    }
+
+    .horse.protest-upheld .horse-id {
+        color: orange;
+    }
+
     .horse.correct .horse-id {
         color: lime;
     }
 
-    .horse:not(.correct) .horse-id {
+    .horse:not(.correct):not(.protest):not(.protest-upheld) .horse-id {
         color: white;
     }
 
@@ -51,7 +59,6 @@
 
     .correct-weight {
         font-size: 8vw;
-        color: #4CAF50;
         margin-top: 0.5vh;
     }
 
@@ -127,7 +134,6 @@
         display: none;
     }
 </style>
-
 </head>
 <body>
     <div id="reconnectBanner">Reconnecting...</div>
@@ -158,11 +164,27 @@
         function updateScoreboard(data) {
             const topSix = document.getElementById("topSix");
             topSix.innerHTML = "";
+
+            const msg2 = data.message2?.toLowerCase() || "";
+            const isProtest = msg2.includes("protest");
+            const isUpheld = msg2.includes("protest upheld");
+            const isCorrectWeight = data.correct_weight?.toLowerCase() === "yes";
+
+            // Determine the color priority
+            let numberClass = "";
+            if (isUpheld) {
+                numberClass = "protest-upheld";
+            } else if (isProtest && !isCorrectWeight) {
+                numberClass = "protest";
+            } else if (isCorrectWeight) {
+                numberClass = "correct";
+            }
+
             if (data.runners) {
                 data.runners.slice(0, 6).forEach((runner, idx) => {
                     const idOnly = runner.split(" ")[0];
                     const div = document.createElement("div");
-                    div.className = "horse" + (data.correct_weight?.toLowerCase() === "yes" ? " correct" : "");
+                    div.className = `horse ${numberClass}`;
                     div.innerHTML = `
                         <div class='position'>${idx + 1}</div>
                         <div class='horse-id'>${idOnly}</div>
@@ -176,8 +198,20 @@
                 document.getElementById("winnerTime").textContent = time ? `Time: ${time}` : "";
             }
 
+            // Status below numbers
             const correctWeightEl = document.getElementById("correctWeight");
-            correctWeightEl.textContent = (data.correct_weight?.toLowerCase() === "yes") ? "Correct Weight" : "";
+            if (isUpheld) {
+                correctWeightEl.textContent = "PROTEST UPHELD";
+                correctWeightEl.style.color = "orange";
+            } else if (isProtest && !isCorrectWeight) {
+                correctWeightEl.textContent = "PROTEST";
+                correctWeightEl.style.color = "red";
+            } else if (isCorrectWeight) {
+                correctWeightEl.textContent = "Correct Weight";
+                correctWeightEl.style.color = "#4CAF50";
+            } else {
+                correctWeightEl.textContent = "";
+            }
 
             const venue = data.venue_name || "Venue Name";
             const condition = data.track_condition || "Unknown";
@@ -219,25 +253,25 @@
 
             socket.onclose = () => {
                 showReconnectBanner(true);
-                setTimeout(() => location.reload(), 1500);  // 🔁 full reload
+                setTimeout(() => location.reload(), 1500);
             };
 
             socket.onerror = () => {
                 showReconnectBanner(true);
-                setTimeout(() => location.reload(), 1500);  // 🔁 full reload
+                setTimeout(() => location.reload(), 1500);
             };
         }
 
         setInterval(() => {
             if (!socket || socket.readyState !== WebSocket.OPEN) {
                 console.warn("WebSocket closed. Reloading...");
-                location.reload();  // 🔁 reload if no connection
+                location.reload();
             } else {
                 try {
                     socket.send("ping");
                 } catch (e) {
                     console.error("Ping failed. Reloading...");
-                    location.reload();  // 🔁 reload if ping fails
+                    location.reload();
                 }
             }
         }, 5000);
