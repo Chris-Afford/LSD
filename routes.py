@@ -53,10 +53,6 @@ def parse_raw_message(raw: str):
     if not raw:
         return race_no, runners, message1
 
-    # Special signal: clear margins and correct weight
-    if raw.strip().endswith("\x05") and re.match(r"^\[\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}\]\s*\x05$", raw.strip()):
-        return "__clear__", [], ""
-
     if raw.endswith("\x05") and "Race:" not in raw:
         clean = raw.replace("\x05", "").strip()
         timestamp_match = re.match(r"^\[\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}\]\s*(.*)", clean)
@@ -121,15 +117,14 @@ async def submit_result(club_id: int, result: Result):
     venue_name = result_data.get("venue_name", "Venue Name")
 
     updated_result = {
-    "race_no": "" if race_num == "__clear__" else (race_num or existing_data.get("race_no", "")),
-    "runners": [] if race_num == "__clear__" else (runners if runners else existing_data.get("runners", [])),
-    "correct_weight": "No" if race_num == "__clear__" else result_data.get("correct_weight", existing_data.get("correct_weight", "No")),
-    "track_condition": result_data.get("track_condition", existing_data.get("track_condition", "Good 4")),
-    "venue_name": venue_name,
-    "message1": "" if race_num == "__clear__" else (message1 if message1 is not None else existing_data.get("message1", "")),
-    "message2": result_data.get("message2", existing_data.get("message2", ""))
-}
-
+        "race_no": race_num or existing_data.get("race_no", ""),
+        "runners": runners if runners else existing_data.get("runners", []),
+        "correct_weight": result_data.get("correct_weight", existing_data.get("correct_weight", "No")),
+        "track_condition": result_data.get("track_condition", existing_data.get("track_condition", "Good 4")),
+        "venue_name": venue_name,
+        "message1": message1 if message1 is not None else existing_data.get("message1", ""),
+        "message2": result_data.get("message2", existing_data.get("message2", ""))
+    }
 
     with open(filename, "w") as f:
         json.dump(updated_result, f, indent=2)
