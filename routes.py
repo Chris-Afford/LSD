@@ -144,7 +144,7 @@ async def submit_result(club_id: int, result: Result):
 
 
 @router.post("/initialise/{club_id}")
-def initialise_state(club_id: int):
+async def initialise_state(club_id: int):
     try:
         filename = f"results_club_{club_id}.json"
 
@@ -164,7 +164,7 @@ def initialise_state(club_id: int):
         with open(filename, "w") as f:
             json.dump(updated_result, f, indent=2)
 
-        broadcast_scoreboard(club_id, updated_result)
+        await broadcast_scoreboard(club_id, updated_result)
         return {"success": True}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
