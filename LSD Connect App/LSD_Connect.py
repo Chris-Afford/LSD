@@ -240,12 +240,10 @@ class LSDConnect:
                             print("Initialise command sent to server.")
                         except Exception as e:
                             with open(LOG_FILE, "a") as log:
-                                log.write("...\n")
-                            with open(LOG_FILE, "a") as log:
                                 log.write(f"[INIT POST ERROR] {datetime.now().isoformat()}\n")
-
-
-                    self.save_json()
+                                traceback.print_exc(file=log)
+                    else:
+                        self.save_json()
             except Exception as e:
                 self.status_label.config(text=f"Error: {e}", foreground="red")
                 with open(LOG_FILE, "a") as log:
