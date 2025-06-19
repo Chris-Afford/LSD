@@ -140,10 +140,11 @@ async def submit_result(club_id: int, result: Result):
         "message2": result_data.get("message2", previous_data.get("message2", ""))
     }
 
-    existing_data[venue_name] = updated_result
+    existing_data = updated_result
 
     with open(filename, "w") as f:
         json.dump(existing_data, f, indent=2)
+
 
     record_day_pass(club_id)
 
