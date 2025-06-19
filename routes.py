@@ -146,17 +146,29 @@ async def submit_result(club_id: int, result: Result):
 @router.post("/initialise/{club_id}")
 def initialise_state(club_id: int):
     try:
-        data = {
-            "timestamp": datetime.now().isoformat(),
-            "club_id": club_id,
+        filename = f"results_club_{club_id}.json"
+
+        if os.path.exists(filename):
+            with open(filename, "r") as f:
+                existing_data = json.load(f)
+        else:
+            existing_data = {}
+
+        updated_result = {
+            **existing_data,
             "message1": "",
             "correct_weight": "No",
-            "raw_message": "[Initialise command received]"
+            "raw_message": "[Initialise command received]",
         }
-        broadcast_scoreboard(club_id, data)
+
+        with open(filename, "w") as f:
+            json.dump(updated_result, f, indent=2)
+
+        broadcast_scoreboard(club_id, updated_result)
         return {"success": True}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
 
 @router.websocket("/ws/{club_id}")
 async def websocket_endpoint(websocket: WebSocket, club_id: int):
