@@ -43,7 +43,7 @@ def scoreboard_login(
         if remember:
             request.session["remember"] = True
 
-      # Redirect to the scoreboard view page with the club_id in the query
+        # Redirect to the scoreboard view page with the club_id in the query
         return RedirectResponse(
             url=f"/scoreboard/view?club_id={club.id}", status_code=302)
 
@@ -61,20 +61,14 @@ def scoreboard_view(request: Request):
             all_results = json.load(f)
 
         if isinstance(all_results, dict) and all_results:
-            latest_result = None
-            latest_ts = None
-            r = all_results 
-                ts_str = r.get("timestamp")
+            ts_str = all_results.get("timestamp")
 
-                try:
-                    ts = datetime.fromisoformat(ts_str)
-                except Exception:
-                    ts = None
-                if latest_ts is None or (ts and ts > latest_ts):
-                    latest_ts = ts
-                    latest_result = r
-            if latest_result:
-                result = latest_result
+            try:
+                ts = datetime.fromisoformat(ts_str)
+            except Exception:
+                ts = None
+
+            result = all_results  # flat structure now
 
     return templates.TemplateResponse("scoreboard_display.html", {"request": request, "club_id": club_id, "result": result})
 
