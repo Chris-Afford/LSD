@@ -97,7 +97,6 @@ class LoginWindow:
         except Exception as e:
             with open(LOG_FILE, "a") as log:
                 log.write(f"[LOGIN ERROR] {datetime.now().isoformat()}\n")
-
                 traceback.print_exc(file=log)
             messagebox.showerror("Login Failed", f"Error: {e}")
 
@@ -164,10 +163,6 @@ class LSDConnect:
         self.listener_thread.start()
         self.root.after(1000, self.check_connection)
 
-    def send_message1(self):
-        self.message1 = self.msg1_entry.get()
-        self.save_json()
-
     def send_message2(self):
         self.message2 = self.msg2_entry.get()
         self.save_json()
@@ -205,11 +200,8 @@ class LSDConnect:
             requests.post(f"{API_BASE_URL}/submit/{self.club_id}", json=data)
         except Exception as e:
             with open(LOG_FILE, "a") as log:
-                log.write("...\n")
-            with open(LOG_FILE, "a") as log:
-                log.write("...\n")
-            log.write(f"[POST ERROR] {datetime.now().isoformat()}\n")
-
+                log.write(f"[POST ERROR] {datetime.now().isoformat()}\n")
+                traceback.print_exc(file=log)
 
     def listen_tcp(self):
         try:
@@ -242,15 +234,16 @@ class LSDConnect:
                             with open(LOG_FILE, "a") as log:
                                 log.write(f"[INIT POST ERROR] {datetime.now().isoformat()}\n")
                                 traceback.print_exc(file=log)
+
+                        self.correct_weight = False
+                        self.update_cw_display()
                     else:
                         self.save_json()
             except Exception as e:
                 self.status_label.config(text=f"Error: {e}", foreground="red")
                 with open(LOG_FILE, "a") as log:
-                    log.write("...\n")
-                with open(LOG_FILE, "a") as log:
                     log.write(f"[TCP ERROR] {datetime.now().isoformat()}\n")
-
+                    traceback.print_exc(file=log)
 
     def check_connection(self):
         if time.time() - self.last_update_time > TIMEOUT_SECONDS:
@@ -272,8 +265,6 @@ if __name__ == "__main__":
         root.mainloop()
     except Exception as e:
         with open(LOG_FILE, "a") as log:
-            log.write("...\n")
-        with open(LOG_FILE, "a") as log:
             log.write(f"[FATAL ERROR] {datetime.now().isoformat()}\n")
-
+            traceback.print_exc(file=log)
         raise
