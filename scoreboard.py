@@ -63,8 +63,9 @@ def scoreboard_view(request: Request):
         if isinstance(all_results, dict) and all_results:
             latest_result = None
             latest_ts = None
-            for r in all_results.values():
+            r = all_results 
                 ts_str = r.get("timestamp")
+
                 try:
                     ts = datetime.fromisoformat(ts_str)
                 except Exception:
