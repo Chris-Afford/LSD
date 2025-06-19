@@ -142,11 +142,6 @@ async def submit_result(club_id: int, result: Result):
 
     return {"status": "ok"}
 
-from fastapi import APIRouter, HTTPException
-from datetime import datetime
-from scoreboard import broadcast_scoreboard
-
-router = APIRouter()
 
 @router.post("/initialise/{club_id}")
 def initialise_state(club_id: int):
