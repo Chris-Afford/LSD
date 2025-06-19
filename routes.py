@@ -12,7 +12,7 @@ import json
 from datetime import date, datetime, timedelta
 
 from database import engine
-from models import Club, Venue, Result, DayPass  # Ensure DayPass exists in models.py
+from models import Club, Venue, Result, DayPass
 from fastapi.templating import Jinja2Templates
 from fastapi import Query
 import re
@@ -23,10 +23,8 @@ templates = Jinja2Templates(directory="templates")
 ADMIN_USERNAME = "Felix"
 ADMIN_PASSWORD = bcrypt.hash("1973")
 
-# Dictionary to manage connected websocket clients per club
 websocket_connections = {}
 
-# Admin verification
 def verify_admin(credentials: HTTPBasicCredentials = Depends(HTTPBasic())):
     if not secrets.compare_digest(credentials.username, ADMIN_USERNAME):
         raise HTTPException(status_code=401, detail="Invalid username")
@@ -34,7 +32,6 @@ def verify_admin(credentials: HTTPBasicCredentials = Depends(HTTPBasic())):
         raise HTTPException(status_code=401, detail="Invalid password")
     return credentials.username
 
-# User login
 @router.post("/login")
 def login(credentials: dict):
     username = credentials.get("username")
@@ -48,7 +45,6 @@ def login(credentials: dict):
         venues = session.exec(select(Venue).where(Venue.club_id == club.id)).all()
         return {"club_id": club.id, "venues": [v.name for v in venues]}
 
-
 def parse_raw_message(raw: str):
     race_no = None
     runners = []
@@ -57,7 +53,6 @@ def parse_raw_message(raw: str):
     if not raw:
         return race_no, runners, message1
 
-    # Handle plain message-only packet
     if raw.endswith("\x05") and "Race:" not in raw:
         clean = raw.replace("\x05", "").strip()
         timestamp_match = re.match(r"^\[\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}\]\s*(.*)", clean)
@@ -66,7 +61,6 @@ def parse_raw_message(raw: str):
         message1 = clean
         return None, [], message1
 
-    # Strip header timestamp if present
     raw = raw.strip()
     raw = re.sub(r"^\[\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}\]\s*", "", raw)
 
@@ -82,7 +76,6 @@ def parse_raw_message(raw: str):
     if race_match:
         race_no = race_match.group(1)
 
-    # Match partial runner entries (some may be malformed)
     entries = re.findall(r"Place:(\d*)\s+HorseID:(\d+)\s+Time:([0-9:.]*)", clean)
 
     for place, horse_id, time in entries:
@@ -91,8 +84,6 @@ def parse_raw_message(raw: str):
 
     return race_no, runners, None
 
-
-# Record day pass
 def record_day_pass(club_id: int):
     now = datetime.utcnow()
     with Session(engine) as session:
@@ -111,15 +102,12 @@ def record_day_pass(club_id: int):
 @router.post("/submit/{club_id}")
 async def submit_result(club_id: int, result: Result):
     result_data = result.dict()
-    print(f"Incoming data for club {club_id}: {result_data}")  # <--- this logs to Render
+    print(f"Incoming data for club {club_id}: {result_data}")
 
     race_num, runners, message1 = parse_raw_message(result_data.get("raw_message", ""))
-    ...
-
 
     filename = f"results_club_{club_id}.json"
 
-    # Load existing data
     if os.path.exists(filename):
         with open(filename, "r") as f:
             existing_data = json.load(f)
@@ -127,24 +115,19 @@ async def submit_result(club_id: int, result: Result):
         existing_data = {}
 
     venue_name = result_data.get("venue_name", "Venue Name")
-    previous_data = existing_data.get(venue_name, {})
 
-    # Build updated record using existing values where needed
     updated_result = {
-        "race_no": race_num or previous_data.get("race_no", ""),
-        "runners": runners if runners else previous_data.get("runners", []),
-        "correct_weight": result_data.get("correct_weight", "No"),
-        "track_condition": result_data.get("track_condition", previous_data.get("track_condition", "Good 4")),
+        "race_no": race_num or existing_data.get("race_no", ""),
+        "runners": runners if runners else existing_data.get("runners", []),
+        "correct_weight": result_data.get("correct_weight", existing_data.get("correct_weight", "No")),
+        "track_condition": result_data.get("track_condition", existing_data.get("track_condition", "Good 4")),
         "venue_name": venue_name,
-        "message1": message1 if message1 is not None else previous_data.get("message1", ""),
-        "message2": result_data.get("message2", previous_data.get("message2", ""))
+        "message1": message1 if message1 is not None else existing_data.get("message1", ""),
+        "message2": result_data.get("message2", existing_data.get("message2", ""))
     }
 
-    existing_data = updated_result
-
     with open(filename, "w") as f:
-        json.dump(existing_data, f, indent=2)
-
+        json.dump(updated_result, f, indent=2)
 
     record_day_pass(club_id)
 
@@ -159,13 +142,6 @@ async def submit_result(club_id: int, result: Result):
 
     return {"status": "ok"}
 
-
-    # Also broadcast to connected scoreboard displays
-    await broadcast_scoreboard(club_id, result_data)
-
-    return {"status": "ok"}
-
-# WebSocket endpoint
 @router.websocket("/ws/{club_id}")
 async def websocket_endpoint(websocket: WebSocket, club_id: int):
     await websocket.accept()
@@ -179,7 +155,6 @@ async def websocket_endpoint(websocket: WebSocket, club_id: int):
     except WebSocketDisconnect:
         websocket_connections[club_id].remove(websocket)
 
-# Admin dashboard
 @router.get("/admin", response_class=HTMLResponse)
 def admin_dashboard(request: Request, username: str = Depends(verify_admin)):
     with Session(engine) as session:
@@ -191,7 +166,6 @@ def admin_dashboard(request: Request, username: str = Depends(verify_admin)):
         "venues": venues
     })
 
-#Default Page
 def register_routes(app):
     @app.get("/", include_in_schema=False)
     def root_redirect():
@@ -281,7 +255,6 @@ async def delete_venue(request: Request):
             club_id = venue.club_id
             session.delete(venue)
             session.commit()
-            # Notify connected scoreboards to refresh venue list
             await broadcast_scoreboard(club_id, {"action": "delete_venue", "venue_id": venue_id})
     return {"status": "ok"}
 
