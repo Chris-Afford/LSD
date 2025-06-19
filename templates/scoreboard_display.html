@@ -172,7 +172,7 @@
 
                 const winner = data.runners[0];
                 const parts = winner.split(" ");
-                const time = parts.find(p => p.match(/\\d+:\\d+\\.\\d+/));
+                const time = parts.find(p => p.match(/\d+:\d+\.\d+/));
                 document.getElementById("winnerTime").textContent = time ? `Time: ${time}` : "";
             }
 
