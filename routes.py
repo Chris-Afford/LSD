@@ -142,6 +142,27 @@ async def submit_result(club_id: int, result: Result):
 
     return {"status": "ok"}
 
+from fastapi import APIRouter, HTTPException
+from datetime import datetime
+from scoreboard import broadcast_scoreboard
+
+router = APIRouter()
+
+@router.post("/initialise/{club_id}")
+def initialise_state(club_id: int):
+    try:
+        data = {
+            "timestamp": datetime.now().isoformat(),
+            "club_id": club_id,
+            "message1": "",
+            "correct_weight": "No",
+            "raw_message": "[Initialise command received]"
+        }
+        broadcast_scoreboard(club_id, data)
+        return {"success": True}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
 @router.websocket("/ws/{club_id}")
 async def websocket_endpoint(websocket: WebSocket, club_id: int):
     await websocket.accept()
