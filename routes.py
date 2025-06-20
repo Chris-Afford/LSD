@@ -297,5 +297,4 @@ def admin_results(request: Request, club_id: int, username: str = Depends(verify
 
     return templates.TemplateResponse("admin_results.html", {"request": request, "result": all_data})
 
-def register_routes(app):
-    app.include_router(router)
+
