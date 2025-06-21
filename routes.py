@@ -157,6 +157,7 @@ async def initialise_state(club_id: int):
         updated_result = {
             **existing_data,
             "message1": "",
+            "message2": "",
             "correct_weight": "No",
             "raw_message": "[Initialise command received]",
         }
