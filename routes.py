@@ -154,11 +154,11 @@ async def initialise_state(club_id: int):
         else:
             existing_data = {}
 
-            updated_result = {**existing_data}
-            updated_result["message1"] = ""
-            updated_result["message2"] = ""
-            updated_result["correct_weight"] = "No"
-            updated_result["raw_message"] = "[Initialise command received]"
+        updated_result = {**existing_data}
+        updated_result["message1"] = ""
+        updated_result["message2"] = ""
+        updated_result["correct_weight"] = "No"
+        updated_result["raw_message"] = "[Initialise command received]"
 
 
         with open(filename, "w") as f:
