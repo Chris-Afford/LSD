@@ -144,9 +144,13 @@
 
     <div class="venue-info" id="venueInfo">Venue Name - Track Condition</div>
     <div class="messages">
-        <div id="message1">Margins:</div>
-        <div id="message2">Announcement:</div>
+    <div id="message1">Margins:</div>
+    <div id="message2Container" style="display: none;">
+        <span style="color: white;">Announcement:</span> 
+        <span id="message2" style="color: yellow;"></span>
     </div>
+</div>
+
 
     <script>
         function getClubIdFromURL() {
@@ -224,7 +228,17 @@
 
             document.getElementById("message1").innerHTML =
                 `<span style="color: white;">Margins:</span> <span style="color: yellow;">${data.message1 || ""}</span>`;
-            document.getElementById("message2").textContent = `Announcement: ${data.message2 || ""}`;
+            const message2Container = document.getElementById("message2Container");
+const message2Text = document.getElementById("message2");
+
+if (data.message2 && data.message2.trim() !== "") {
+    message2Text.textContent = data.message2;
+    message2Container.style.display = "block";
+} else {
+    message2Text.textContent = "";
+    message2Container.style.display = "none";
+}
+
         }
 
         const initialData = {{ result | tojson | safe }};
