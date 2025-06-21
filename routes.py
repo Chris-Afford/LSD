@@ -199,6 +199,8 @@ def register_routes(app):
     def root_redirect():
         return RedirectResponse(url="/scoreboard")
 
+    app.include_router(router)
+
 @router.get("/admin/daypass_dashboard", response_class=HTMLResponse)
 def daypass_dashboard(request: Request, username: str = Depends(verify_admin)):
     with Session(engine) as session:
