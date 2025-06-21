@@ -138,7 +138,7 @@ class LSDConnect:
         cond_frame.pack(pady=2)
         ttk.Label(cond_frame, text="Track Condition:").pack(side="left")
         self.condition_var = tk.StringVar()
-        cond_options = ["Firm 1", "Firm 2", "Good 3", "Good 4", "Soft 5", "Soft 6", "Soft 7", "Heavy 8", "Heavy 9", "Heavy 10"]
+        cond_options = ["Firm 1", "Firm 2", "Good 3", "Good 4", "Soft 5", "Soft 6", "Soft 7", "Heavy 8", "Heavy 9", "Heavy 10", "Fast", "Good", "Soft"]
         self.condition_menu = ttk.Combobox(cond_frame, textvariable=self.condition_var, values=cond_options, state="readonly")
         self.condition_var.set(self.track_condition)
         self.condition_menu.pack(side="left", padx=5)
@@ -237,6 +237,7 @@ class LSDConnect:
 
                         self.correct_weight = False
                         self.update_cw_display()
+                        self.msg2_entry.delete(0, tk.END)
                     else:
                         self.save_json()
             except Exception as e:
