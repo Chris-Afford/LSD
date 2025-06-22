@@ -144,7 +144,10 @@
 
     <div class="venue-info" id="venueInfo">Venue Name - Track Condition</div>
     <div class="messages">
-    <div id="message1">Margins:</div>
+   <div id="message1Container" style="display: none;">
+    <span style="color: white;">Margins:</span> 
+    <span id="message1" style="color: yellow;"></span>
+</div>
     <div id="message2Container" style="display: none;">
         <span style="color: white;">Announcement:</span> 
         <span id="message2" style="color: yellow;"></span>
@@ -226,8 +229,16 @@
                 `<span class="venue-name">${venue}</span> - ` +
                 `<span class="track-condition">${condition}</span>`;
 
-            document.getElementById("message1").innerHTML =
-                `<span style="color: white;">Margins:</span> <span style="color: yellow;">${data.message1 || ""}</span>`;
+            const message1Container = document.getElementById("message1Container");
+const message1Text = document.getElementById("message1");
+
+if (data.message1 && data.message1.trim() !== "") {
+    message1Text.textContent = data.message1;
+    message1Container.style.display = "block";
+} else {
+    message1Text.textContent = "";
+    message1Container.style.display = "none";
+}
             const message2Container = document.getElementById("message2Container");
 const message2Text = document.getElementById("message2");
 
